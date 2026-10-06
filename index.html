@@ -522,7 +522,7 @@ class Battle {
       this.add('r', `— Round ${this.round} —`);
       this._initOpen = true;
     }
-    const ta = this.initRoll(this.A); const tb = this.initRoll(this.B);
+    let ta = this.initRoll(this.A); let tb = this.initRoll(this.B);
     this.add('A', `${this.name('A')} initiative: ${ta.text} = ${r1(ta.total)}`);
     this.add('B', `${this.name('B')} initiative: ${tb.text} = ${r1(tb.total)}`);
     if (ta.total === tb.total){
@@ -763,9 +763,10 @@ function runMC(){
   const res = { A: 0, B: 0, escA: 0, escB: 0, stale: 0 }; let sa = 0, sb = 0, rounds = 0; const hist = {}; let dromA = 0, dromB = 0; let capA = 0, capB = 0;
   const nA = specs.A.ls + specs.A.ga + (specs.A.drom !== 'none' ? 1 : 0), nB = specs.B.ls + specs.B.ga + (specs.B.drom !== 'none' ? 1 : 0);
   if (!nA || !nB){ document.getElementById('mcOut').innerHTML = '<p class="muted">Both fleets need at least one ship.</p>'; return; }
+  document.getElementById('mcOut').innerHTML = '<p class="muted">Running…</p>';
   for (let i = 0; i < n; i++){
     const b = new Battle(true); b.autoBattle(fa, fb);
-    const r = b.result;
+    const r = b.result || { how: 'stalemate', winner: null };
     if (r.how === 'stalemate') res.stale++;
     else if (r.how === 'escaped') res[r.winner === 'A' ? 'escA' : 'escB']++;
     else res[r.winner]++;
