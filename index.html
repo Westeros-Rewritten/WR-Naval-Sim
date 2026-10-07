@@ -336,8 +336,9 @@ function syncHouseTotals(s){
 function addHouse(side){
   const s = specs[side];
   s.houses = s.houses || [];
-  if (!s.houses.length) s.houses.push({ name: s.name || 'House', ls: Number(s.ls) || 0, ga: Number(s.ga) || 0 });
-  else s.houses.push({ name: '', ls: 0, ga: 0 });
+  const dromType = s.drom && s.drom !== 'none' ? s.drom : 'none';
+  if (!s.houses.length) s.houses.push({ name: s.name || 'House', ls: Number(s.ls) || 0, ga: Number(s.ga) || 0, drom: dromType !== 'none' ? 1 : 0, dromType });
+  else s.houses.push({ name: '', ls: 0, ga: 0, drom: 0, dromType });
   syncHouseTotals(s); renderForms(); save();
 }
 function delHouse(side, i){
@@ -356,19 +357,22 @@ function fleetForm(side){
   const houses = s.houses || [];
   const locked = houses.length > 0;
   const dromOpts = ['none', ...Object.keys(rules.drom)].map(d => `<option value="${d}" ${s.drom === d ? 'selected' : ''}>${d}</option>`).join('');
+  const houseDromOpts = (cur) => ['none', ...Object.keys(rules.drom)].map(d => `<option value="${d}" ${cur === d ? 'selected' : ''}>${d}</option>`).join('');
   const houseRows = houses.map((h, i) => `<div class="house-row">
       <div style="flex:2 1 140px"><label>${i === 0 ? 'House' : '\u00a0'}</label><input type="text" data-s="${side}" data-hi="${i}" data-hk="name" value="${esc(h.name)}" placeholder="House name"></div>
       <div><label>${i === 0 ? 'Longships' : '\u00a0'}</label><input type="number" min="0" data-s="${side}" data-hi="${i}" data-hk="ls" value="${h.ls}"></div>
       <div><label>${i === 0 ? 'Galleys' : '\u00a0'}</label><input type="number" min="0" data-s="${side}" data-hi="${i}" data-hk="ga" value="${h.ga}"></div>
+      <div><label>${i === 0 ? 'Dromonds' : '\u00a0'}</label><input type="number" min="0" data-s="${side}" data-hi="${i}" data-hk="drom" value="${h.drom || 0}"></div>
+      <div><label>${i === 0 ? 'Dromond type' : '\u00a0'}</label><select data-s="${side}" data-hi="${i}" data-hk="dromType">${houseDromOpts(h.dromType || 'none')}</select></div>
       <div style="flex:0 0 auto"><label>\u00a0</label><button type="button" data-del-house="${side}" data-hi="${i}" title="Remove house">−</button></div>
     </div>`).join('');
-  const dromOwner = (s.drom !== 'none' && houses.length) ? `<div style="flex:1 1 180px"><label>Dromond belongs to</label><select data-s="${side}" data-k="dromHouse"><option value="" ${s.dromHouse === '' || s.dromHouse == null ? 'selected' : ''}>Fleet (unassigned)</option>${houses.map((h, i) => `<option value="${i}" ${String(s.dromHouse) === String(i) ? 'selected' : ''}>${esc(h.name || ('House ' + (i + 1)))}</option>`).join('')}</select></div>` : '';
+  const dromOwner = (s.drom !== 'none' && houses.length) ? `<div style="flex:1 1 180px"><label>Primary belongs to</label><select data-s="${side}" data-k="dromHouse"><option value="" ${s.dromHouse === '' || s.dromHouse == null ? 'selected' : ''}>Fleet (unassigned)</option>${houses.map((h, i) => `<option value="${i}" ${String(s.dromHouse) === String(i) ? 'selected' : ''}>${esc(h.name || ('House ' + (i + 1)))}</option>`).join('')}</select></div>` : '';
   return `<div class="card ${side}"><h2>Fleet ${side}</h2><div class="body">
     <div class="row">
       <div style="flex:2 1 160px"><label>Fleet name</label><input type="text" data-s="${side}" data-k="name" value="${esc(s.name)}"></div>
       <div><label>Longships${locked ? ' (sum)' : ''}</label><input type="number" min="0" data-s="${side}" data-k="ls" value="${s.ls}" ${locked ? 'readonly' : ''}></div>
       <div><label>Galleys${locked ? ' (sum)' : ''}</label><input type="number" min="0" data-s="${side}" data-k="ga" value="${s.ga}" ${locked ? 'readonly' : ''}></div>
-      <div><label>Dromond</label><select data-s="${side}" data-k="drom">${dromOpts}</select></div>
+      <div><label>Primary dromond</label><select data-s="${side}" data-k="drom">${dromOpts}</select></div>
     </div>
     <div class="chips"><label class="chk"><input type="checkbox" data-s="${side}" data-k="culture" ${s.culture ? 'checked' : ''}> Shieldman / Hewett HP bonus (+${rules.culture} per warship)</label></div>
     <fieldset><legend>Captain</legend>
@@ -390,7 +394,7 @@ function fleetForm(side){
       <div class="row" style="margin-top:6px"><div style="flex:0 1 260px"><label>Scorpion hit chance per turn (%) — set by staff</label><input type="number" min="0" max="100" data-s="${side}" data-k="scorpionPct" value="${s.scorpionPct}"></div></div>
     </fieldset>
     <fieldset><legend>Contributing houses</legend>
-      <p class="faint" style="margin:0 0 8px">Optional. Add houses when more than one banner sails in this fleet. Longship and galley totals above become the sum of the rows. Losses of each type are split by how many of that type each house brought. To split an existing fleet, add a house (it copies the current counts), then lower the first row and fill in the others.</p>
+      <p class="faint" style="margin:0 0 8px">Optional. Add houses when more than one banner sails in this fleet. Longship and galley totals above become the sum of the rows. Each house can bring dromonds of any type; they all fight. Only the Primary dromond above grants flagship modifiers (Ibben HP, Swan dodge / flee, Myrish Eye, Crow's Nest, Boarding Ramps, scorpion). Extra dromonds die before the primary. Losses of longships and galleys are split by contribution; a dromond loss is billed to the house that brought that hull. To split an existing fleet, add a house (it copies the current counts), then lower the first row and fill in the others.</p>
       ${houseRows}
       <div class="row" style="align-items:center;margin-top:4px">
         <button type="button" class="add-house" data-add-house="${side}" title="Add house">+</button>
@@ -426,24 +430,47 @@ function renderForms(){
 }
 
 /* ───────────────────────────── FLEET MODEL ───────────────────────────── */
+function makeDrom(type, house){
+  const [, n, s] = rules.drom[type];
+  return { t: type, hp: dromHp(type), n, s, w: r1(rules.drom[type][0] / 8), isDrom: true, isPrimary: false, house };
+}
 function buildFleet(spec, side){
   const ships = [];
   for (let i = 0; i < spec.ls; i++) ships.push({ t: 'LS', hp: lsHp(spec), n: 1, s: 6, w: 1 });
   for (let i = 0; i < spec.ga; i++) ships.push({ t: 'GA', hp: gaHp(spec), n: rules.galN, s: rules.galS, w: 2 });
-  let drom = null;
-  if (spec.drom !== 'none'){
-    const [, n, s] = rules.drom[spec.drom];
-    drom = { t: spec.drom, hp: dromHp(spec.drom), n, s, w: r1(rules.drom[spec.drom][0] / 8), isDrom: true };
-    ships.push(drom);
-  }
-  for (const sh of ships) sh.max = sh.hp;
   const houses = (spec.houses || []).map((h, i) => ({
     name: (h.name || '').trim() || `House ${i + 1}`,
     startLs: Number(h.ls) || 0, startGa: Number(h.ga) || 0,
     ls: Number(h.ls) || 0, ga: Number(h.ga) || 0,
-    lostLs: 0, lostGa: 0, lostDrom: 0,
-    hadDrom: spec.drom !== 'none' && String(spec.dromHouse) === String(i)
+    startDrom: Number(h.drom) || 0, drom: Number(h.drom) || 0, dromType: h.dromType || 'none',
+    lostLs: 0, lostGa: 0, lostDrom: 0, hadPrimary: false
   }));
+  const dromShips = [];
+  houses.forEach((h, i) => {
+    const n = h.drom;
+    let typ = h.dromType && h.dromType !== 'none' ? h.dromType : (spec.drom !== 'none' ? spec.drom : '');
+    if (n > 0 && typ && rules.drom[typ]){
+      for (let k = 0; k < n; k++) dromShips.push(makeDrom(typ, i));
+    }
+  });
+  const owner = spec.dromHouse !== '' && spec.dromHouse != null ? Number(spec.dromHouse) : -1;
+  if (spec.drom !== 'none' && rules.drom[spec.drom]){
+    let primary = (owner >= 0 ? dromShips.find(s => s.t === spec.drom && s.house === owner) : null)
+      || dromShips.find(s => s.t === spec.drom)
+      || (owner >= 0 ? dromShips.find(s => s.house === owner) : null);
+    if (primary) primary.isPrimary = true;
+    else {
+      const extra = makeDrom(spec.drom, owner);
+      extra.isPrimary = true;
+      dromShips.push(extra);
+      if (owner >= 0 && houses[owner]){ houses[owner].startDrom += 1; houses[owner].drom += 1; }
+    }
+  }
+  dromShips.forEach(s => { if (s.isPrimary && s.house >= 0 && houses[s.house]) houses[s.house].hadPrimary = true; });
+  dromShips.sort((a, b) => (a.isPrimary ? 1 : 0) - (b.isPrimary ? 1 : 0));
+  ships.push(...dromShips);
+  for (const sh of ships) sh.max = sh.hp;
+  const drom = dromShips.find(s => s.isPrimary) || null;
   const f = { side, spec, ships, drom, dragon: !!spec.dragon, fled: false, prizes: [], lost: [], houses,
     start: { ls: spec.ls, ga: spec.ga, weight: sum(ships.map(x => x.w)), hp: sum(ships.map(x => x.max)) } };
   f.initBonus = r1((spec.mar + spec.stew) / rules.div + spec.sailor + (spec.organizer ? 1 : 0) + (spec.seastone ? 2 : 0) + (spec.bloodvyne ? 1 : 0) + (spec.riptide ? 1 : 0) + (spec.myrish && drom ? 2 : 0));
@@ -455,14 +482,27 @@ const alive = f => f.ships.length > 0 || f.dragon;
 const count = (f, t) => f.ships.filter(x => x.t === t).length;
 const weight = f => sum(f.ships.map(x => x.w));
 const hpTotal = f => sum(f.ships.map(x => x.hp));
+const primaryOf = f => f.ships.find(x => x.isPrimary);
 const pursuitEligible = f => f.ships.every(x => x.t === 'LS' || x.t === 'Swan' || x.t === 'Iron');
-const hasSwan = f => f.ships.some(x => x.t === 'Swan');
+const hasSwan = f => { const p = primaryOf(f); return !!(p && p.t === 'Swan'); };
 const desc = f => {
   const parts = [];
   const ls = count(f, 'LS'), ga = count(f, 'GA');
   if (ls) parts.push(`${ls} longship${ls > 1 ? 's' : ''}`);
   if (ga) parts.push(`${ga} galley${ga > 1 ? 's' : ''}`);
-  const d = f.ships.find(x => x.isDrom); if (d) parts.push(`${d.t} dromond (${r1(d.hp)}/${r1(d.max)} HP)`);
+  const droms = f.ships.filter(x => x.isDrom);
+  if (droms.length === 1){
+    const d = droms[0];
+    parts.push(`${d.t} dromond${d.isPrimary ? ' (primary)' : ''} (${r1(d.hp)}/${r1(d.max)} HP)`);
+  } else if (droms.length){
+    const prim = droms.find(d => d.isPrimary);
+    const rest = {};
+    droms.filter(d => !d.isPrimary).forEach(d => { rest[d.t] = (rest[d.t] || 0) + 1; });
+    const bits = [];
+    if (prim) bits.push(`${prim.t} dromond primary (${r1(prim.hp)}/${r1(prim.max)} HP)`);
+    Object.entries(rest).forEach(([t, n]) => bits.push(`${n} ${t} dromond${n > 1 ? 's' : ''}`));
+    parts.push(bits.join(', '));
+  }
   if (f.dragon) parts.push('dragon');
   return parts.join(', ') || 'nothing';
 };
@@ -501,9 +541,9 @@ function eatDamage(def, pred, dmg, destroyed){
   return dmg;
 }
 /**
- * v3 (`escorts`): sequential LS → GA → dromond.
+ * v3 (`escorts`): sequential LS → GA → extra dromonds → primary dromond.
  * Current/table (`split`): if both escort types remain, half the hit to each
- * (odd point to galleys); leftover overflows to remaining escorts, then the dromond.
+ * (odd point to galleys); leftover overflows to remaining escorts, then extra dromonds, then the primary.
  */
 function applyDamage(def, dmg){
   const destroyed = [];
@@ -516,16 +556,20 @@ function applyDamage(def, dmg){
       dmg = eatDamage(def, s => s.t === 'LS', toLS, destroyed) + eatDamage(def, s => s.t === 'GA', toGA, destroyed);
     }
     dmg = eatDamage(def, s => !s.isDrom, dmg, destroyed);
-    eatDamage(def, s => !!s.isDrom, dmg, destroyed);
+    dmg = eatDamage(def, s => s.isDrom && !s.isPrimary, dmg, destroyed);
+    eatDamage(def, s => !!s.isPrimary, dmg, destroyed);
   } else {
-    eatDamage(def, () => true, dmg, destroyed);
+    dmg = eatDamage(def, s => s.t === 'LS', dmg, destroyed);
+    dmg = eatDamage(def, s => s.t === 'GA', dmg, destroyed);
+    dmg = eatDamage(def, s => s.isDrom && !s.isPrimary, dmg, destroyed);
+    eatDamage(def, s => !!s.isPrimary, dmg, destroyed);
   }
   return destroyed;
 }
-const shipLabel = sh => sh.isDrom ? `${sh.t} dromond` : sh.t === 'LS' ? 'longship' : 'galley';
+const shipLabel = sh => sh.isDrom ? `${sh.t} dromond${sh.isPrimary ? ' (primary)' : ''}` : sh.t === 'LS' ? 'longship' : 'galley';
 const typePool = sh => sh.isDrom ? `${sh.t} dromond` : sh.t === 'LS' ? 'longships' : 'galleys';
 function captureNeed(att){
-  const ramps = att.spec.boarding && att.ships.some(s => s.isDrom);
+  const ramps = att.spec.boarding && !!primaryOf(att);
   const n = ramps ? Number(rules.rampsOn) : Number(rules.captureOn);
   return Math.max(1, Math.min(10, n || 10));
 }
@@ -573,7 +617,6 @@ function chargeHouses(f, sunk){
   if (!f.houses.length || !sunk.length) return '';
   const deadLs = sunk.filter(s => s.t === 'LS').length;
   const deadGa = sunk.filter(s => s.t === 'GA').length;
-  const deadDrom = sunk.filter(s => s.isDrom).length;
   const lsT = allocateByShare(f.houses.map(h => h.startLs), f.houses.map(h => h.ls), deadLs);
   const gaT = allocateByShare(f.houses.map(h => h.startGa), f.houses.map(h => h.ga), deadGa);
   const bits = [];
@@ -583,19 +626,27 @@ function chargeHouses(f, sunk){
     if (gaT[i]){ h.ga -= gaT[i]; h.lostGa += gaT[i]; parts.push(`−${gaT[i]} galley${gaT[i] > 1 ? 's' : ''}`); }
     if (parts.length) bits.push(`${h.name} ${parts.join(', ')}`);
   });
-  if (deadDrom){
-    const i = f.houses.findIndex(h => h.hadDrom);
-    if (i >= 0){ f.houses[i].lostDrom = 1; bits.push(`${f.houses[i].name} −dromond`); }
-  }
+  sunk.filter(s => s.isDrom).forEach(sh => {
+    const i = sh.house;
+    if (i >= 0 && f.houses[i]){
+      const h = f.houses[i];
+      h.drom = Math.max(0, h.drom - 1);
+      h.lostDrom += 1;
+      bits.push(`${h.name} −${sh.t} dromond${sh.isPrimary ? ' (primary)' : ''}`);
+    }
+  });
   return bits.length ? ` House split: ${bits.join('; ')}.` : '';
 }
 function formatHouses(f){
-  return f.houses.map(h => {
+  return f.houses.map((h, i) => {
     const bits = [];
     if (h.startLs) bits.push(`${h.ls}/${h.startLs} longships`);
     if (h.startGa) bits.push(`${h.ga}/${h.startGa} galleys`);
-    if (h.hadDrom) bits.push(h.lostDrom ? 'dromond lost' : 'dromond standing');
-    const lost = h.lostLs + h.lostGa + (h.lostDrom ? 1 : 0);
+    if (h.startDrom){
+      const prim = h.hadPrimary ? (f.ships.some(s => s.isPrimary && s.house === i) ? ', primary' : ', primary lost') : '';
+      bits.push(`${h.drom}/${h.startDrom} ${h.dromType && h.dromType !== 'none' ? h.dromType + ' ' : ''}dromond${h.startDrom > 1 ? 's' : ''}${prim}`);
+    }
+    const lost = h.lostLs + h.lostGa + h.lostDrom;
     return `${h.name}: ${bits.join(', ') || '—'}${lost ? ` (lost ${lost})` : ''}`;
   }).join(' · ');
 }
@@ -714,8 +765,8 @@ class Battle {
     if (this.over || this.phase !== 'pursue' || !this.fleeing) return;
     const k = this.fleeing, F = this.f(k), P = this.f(this.other(k));
     this.fleeing = null;
-    const pBon = P.fleeBonus + (P.spec.crow && P.drom ? 3 : 0) + (pursuitEligible(P) ? 2 : 0) + (hasSwan(P) ? 3 : 0);
-    const fBon = F.fleeBonus + (F.spec.ironwood && F.drom ? 3 : 0) + (hasSwan(F) ? 3 : 0);
+    const pBon = P.fleeBonus + (P.spec.crow && primaryOf(P) ? 3 : 0) + (pursuitEligible(P) ? 2 : 0) + (hasSwan(P) ? 3 : 0);
+    const fBon = F.fleeBonus + (F.spec.ironwood && primaryOf(F) ? 3 : 0) + (hasSwan(F) ? 3 : 0);
     const pd = die(20), fd = die(20);
     const p = pd + pBon, f = fd + fBon, diff = p - f;
     this.add('hi', `${P.spec.name} pursues. Pursuit: ${P.spec.name} d20 ${pd} + ${r1(pBon)} = ${r1(p)}  vs  ${F.spec.name} d20 ${fd} + ${r1(fBon)} = ${r1(f)}  (difference ${r1(diff)})`);
@@ -747,7 +798,7 @@ class Battle {
   attack(att, def, brace){
     if (this.over) return;
     // scorpion vs dragon
-    if (att.dragon && def.spec.scorpion && def.drom && def.spec.scorpionPct > 0){
+    if (att.dragon && def.spec.scorpion && primaryOf(def) && def.spec.scorpionPct > 0){
       const d100 = die(100);
       if (d100 <= def.spec.scorpionPct){ att.dragon = false; this.add(def.side, `${def.spec.name}'s scorpion fires (d100 ${d100} ≤ ${def.spec.scorpionPct}%): the dragon is shot down!`); }
       else this.add(def.side, `${def.spec.name}'s scorpion fires (d100 ${d100} > ${def.spec.scorpionPct}%) and misses.`);
@@ -771,7 +822,7 @@ class Battle {
         const toLS = Math.floor(dmg / 2), toGA = dmg - toLS;
         splitTxt = ` — ${toLS} to longships, ${toGA} to galleys`;
       } else {
-        splitTxt = ' — escorts first, dromond last';
+        splitTxt = def.ships.filter(s => s.isDrom && !s.isPrimary).length ? ' — escorts first, extra dromonds, primary last' : ' — escorts first, dromond last';
       }
     }
     const sunk = applyDamage(def, dmg);
@@ -843,7 +894,7 @@ let battle = null;
 function startBattle(){
   setSeed(document.getElementById('seed').value.trim());
   battle = new Battle(false);
-  const houseLine = f => f.houses.length ? ` Houses: ${f.houses.map(h => `${h.name} ${h.startLs} LS, ${h.startGa} GA${h.hadDrom ? ', dromond' : ''}`).join('; ')}.` : '';
+  const houseLine = f => f.houses.length ? ` Houses: ${f.houses.map(h => `${h.name} ${h.startLs} LS, ${h.startGa} GA${h.startDrom ? `, ${h.startDrom} ${h.dromType && h.dromType !== 'none' ? h.dromType + ' ' : ''}dromond${h.startDrom > 1 ? 's' : ''}` : ''}${h.hadPrimary ? ' (primary)' : ''}`).join('; ')}.` : '';
   battle.add('sys', `${rules.label}. ${specs.A.name}: ${desc(battle.A)} (captain M${specs.A.mar}/S${specs.A.stew}/I${specs.A.intr}, init +${r1(battle.A.initBonus)}).${houseLine(battle.A)}  ${specs.B.name}: ${desc(battle.B)} (captain M${specs.B.mar}/S${specs.B.stew}/I${specs.B.intr}, init +${r1(battle.B.initBonus)}).${houseLine(battle.B)}${document.getElementById('seed').value ? ' Seed: ' + document.getElementById('seed').value : ''}`);
   showTab('battle'); render();
 }
@@ -912,7 +963,7 @@ function runMC(){
     else res[r.winner]++;
     sa += b.A.ships.length / nA; sb += b.B.ships.length / nB; rounds += b.round; hist[b.round] = (hist[b.round] || 0) + 1;
     capA += b.A.prizes.length; capB += b.B.prizes.length;
-    if (b.A.ships.some(x => x.isDrom)) dromA++; if (b.B.ships.some(x => x.isDrom)) dromB++;
+    if (b.A.ships.some(x => x.isPrimary)) dromA++; if (b.B.ships.some(x => x.isPrimary)) dromB++;
   }
   const maxR = Math.max(...Object.keys(hist).map(Number)); const maxC = Math.max(...Object.values(hist));
   const bars = []; for (let r = 1; r <= Math.min(maxR, 30); r++) bars.push(`<i style="height:${100 * (hist[r] || 0) / maxC}%" data-l="${r}" title="${r} rounds: ${hist[r] || 0}"></i>`);
@@ -941,7 +992,7 @@ function load(){
   try { const d = JSON.parse(localStorage.getItem('navalResolver')); if (d){ if (d.specs){
     const tidy = (raw, fallback) => {
       const s = { ...defaultSpec(fallback, 0, 0, 'none'), ...raw };
-      s.houses = Array.isArray(raw && raw.houses) ? raw.houses.map(h => ({ name: h.name || '', ls: Number(h.ls) || 0, ga: Number(h.ga) || 0 })) : [];
+      s.houses = Array.isArray(raw && raw.houses) ? raw.houses.map(h => ({ name: h.name || '', ls: Number(h.ls) || 0, ga: Number(h.ga) || 0, drom: Number(h.drom) || 0, dromType: h.dromType || 'none' })) : [];
       if (s.dromHouse == null) s.dromHouse = '';
       syncHouseTotals(s);
       return s;
