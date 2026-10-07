@@ -60,6 +60,8 @@
   legend{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:0 6px}
   .house-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
   .house-row>*{flex:1 1 90px;min-width:70px}
+  .house-row .prim{flex:0 0 auto;min-width:0}
+  .house-row .prim .chk{margin:0 0 4px;white-space:nowrap;flex:0 0 auto}
   .add-house{flex:0 0 36px;width:36px;height:36px;padding:0;font-size:22px;line-height:1;color:var(--accent);border-color:var(--accent)}
   input[readonly]{opacity:.72;cursor:default}
   button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:7px 12px;font:13px/1.3 system-ui,-apple-system,Segoe UI,sans-serif;cursor:pointer}
@@ -337,8 +339,10 @@ function addHouse(side){
   const s = specs[side];
   s.houses = s.houses || [];
   const dromType = s.drom && s.drom !== 'none' ? s.drom : 'none';
-  if (!s.houses.length) s.houses.push({ name: s.name || 'House', ls: Number(s.ls) || 0, ga: Number(s.ga) || 0, drom: dromType !== 'none' ? 1 : 0, dromType });
-  else s.houses.push({ name: '', ls: 0, ga: 0, drom: 0, dromType });
+  if (!s.houses.length){
+    s.houses.push({ name: s.name || 'House', ls: Number(s.ls) || 0, ga: Number(s.ga) || 0, drom: 0, dromType });
+    if (dromType !== 'none') s.dromHouse = '0';
+  } else s.houses.push({ name: '', ls: 0, ga: 0, drom: 0, dromType });
   syncHouseTotals(s); renderForms(); save();
 }
 function delHouse(side, i){
@@ -364,9 +368,9 @@ function fleetForm(side){
       <div><label>${i === 0 ? 'Galleys' : '\u00a0'}</label><input type="number" min="0" data-s="${side}" data-hi="${i}" data-hk="ga" value="${h.ga}"></div>
       <div><label>${i === 0 ? 'Dromonds' : '\u00a0'}</label><input type="number" min="0" data-s="${side}" data-hi="${i}" data-hk="drom" value="${h.drom || 0}"></div>
       <div><label>${i === 0 ? 'Dromond type' : '\u00a0'}</label><select data-s="${side}" data-hi="${i}" data-hk="dromType">${houseDromOpts(h.dromType || 'none')}</select></div>
+      <div class="prim"><label class="chk"><input type="checkbox" data-s="${side}" data-hi="${i}" data-primary-house ${String(s.dromHouse) === String(i) ? 'checked' : ''}> Primary</label></div>
       <div style="flex:0 0 auto"><label>\u00a0</label><button type="button" data-del-house="${side}" data-hi="${i}" title="Remove house">−</button></div>
     </div>`).join('');
-  const dromOwner = (s.drom !== 'none' && houses.length) ? `<div style="flex:1 1 180px"><label>Primary belongs to</label><select data-s="${side}" data-k="dromHouse"><option value="" ${s.dromHouse === '' || s.dromHouse == null ? 'selected' : ''}>Fleet (unassigned)</option>${houses.map((h, i) => `<option value="${i}" ${String(s.dromHouse) === String(i) ? 'selected' : ''}>${esc(h.name || ('House ' + (i + 1)))}</option>`).join('')}</select></div>` : '';
   return `<div class="card ${side}"><h2>Fleet ${side}</h2><div class="body">
     <div class="row">
       <div style="flex:2 1 160px"><label>Fleet name</label><input type="text" data-s="${side}" data-k="name" value="${esc(s.name)}"></div>
@@ -394,12 +398,11 @@ function fleetForm(side){
       <div class="row" style="margin-top:6px"><div style="flex:0 1 260px"><label>Scorpion hit chance per turn (%) — set by staff</label><input type="number" min="0" max="100" data-s="${side}" data-k="scorpionPct" value="${s.scorpionPct}"></div></div>
     </fieldset>
     <fieldset><legend>Contributing houses</legend>
-      <p class="faint" style="margin:0 0 8px">Optional. Add houses when more than one banner sails in this fleet. Longship and galley totals above become the sum of the rows. Each house can bring dromonds of any type; they all fight. Only the Primary dromond above grants flagship modifiers (Ibben HP, Swan dodge / flee, Myrish Eye, Crow's Nest, Boarding Ramps, scorpion). Extra dromonds die before the primary. Losses of longships and galleys are split by contribution; a dromond loss is billed to the house that brought that hull. To split an existing fleet, add a house (it copies the current counts), then lower the first row and fill in the others.</p>
+      <p class="faint" style="margin:0 0 8px">Optional. Add houses when more than one banner sails in this fleet. Longship and galley totals above become the sum of the rows. Tick <b>Primary</b> on the house that sails the flagship — only one house per fleet; untick to leave it unassigned. You do not need to put that flagship on the house's Dromonds count. Extra dromonds on the rows still fight and die before the flagship. Losses of longships and galleys are split by contribution; a dromond wreck is billed to the house that brought it.</p>
       ${houseRows}
       <div class="row" style="align-items:center;margin-top:4px">
         <button type="button" class="add-house" data-add-house="${side}" title="Add house">+</button>
         <span class="faint">Add a house</span>
-        ${dromOwner}
       </div>
     </fieldset>
   </div></div>`;
@@ -427,6 +430,11 @@ function renderForms(){
   }));
   document.querySelectorAll('#fleetForms [data-add-house]').forEach(el => el.addEventListener('click', () => addHouse(el.dataset.addHouse)));
   document.querySelectorAll('#fleetForms [data-del-house]').forEach(el => el.addEventListener('click', () => delHouse(el.dataset.delHouse, Number(el.dataset.hi))));
+  document.querySelectorAll('#fleetForms [data-primary-house]').forEach(el => el.addEventListener('change', e => {
+    const side = e.target.dataset.s, i = Number(e.target.dataset.hi);
+    specs[side].dromHouse = e.target.checked ? String(i) : '';
+    renderForms(); save();
+  }));
 }
 
 /* ───────────────────────────── FLEET MODEL ───────────────────────────── */
