@@ -78,6 +78,8 @@
   .fleetstat h3{margin:0 0 8px;font-size:16px;color:var(--parchment);font-weight:600}
   .fleetstat .big{font-size:26px;font-weight:600;font-family:Georgia,serif}
   .fleetstat .meta{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+  .fleetstat .houses{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+  .fleetstat .houses div{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;padding:2px 0;line-height:1.4}
   .bar{height:8px;background:#2a2418;border-radius:1px;overflow:hidden;margin:6px 0}
   .bar>i{display:block;height:100%}
   .A .bar>i{background:var(--a)} .B .bar>i{background:var(--b)}
@@ -93,6 +95,15 @@
   .log .e.sys{color:var(--muted)}
   .log .e.hi{color:var(--warn)}
   .log .e.end{color:var(--ok);font-weight:600}
+  .arch-item{border:1px solid var(--line);margin:0 0 10px;background:var(--panel2)}
+  .arch-item summary{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 12px;cursor:pointer;list-style:none;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+  .arch-item summary::-webkit-details-marker{display:none}
+  .arch-item .when{color:var(--faint);font-size:12px;min-width:11em}
+  .arch-item .vs{color:var(--parchment)}
+  .arch-item .out{color:var(--ok)}
+  .arch-item .meta{color:var(--muted);font-size:12px}
+  .arch-item .arch-actions{margin-left:auto;display:flex;gap:6px}
+  .arch-item .log{max-height:420px}
   details{margin:2px 0 2px 12px;color:var(--faint)}
   summary{cursor:pointer}
   .phase{display:inline-block;padding:2px 8px;border-radius:2px;background:var(--panel2);color:var(--muted);font-size:12px;margin-left:8px;letter-spacing:.06em;text-transform:uppercase}
@@ -129,6 +140,7 @@
     <span class="sub">Ruleset:</span>
     <button class="seg" data-preset="current">Current rules</button>
     <button class="seg" data-preset="v3">Proposed v3</button>
+    <button class="seg" data-preset="j1">j1</button>
     <span class="sub" id="rulesetLabel"></span>
   </div>
 </header>
@@ -138,6 +150,7 @@
     <button class="tab active" data-tab="setup">1 · Fleets &amp; captains</button>
     <button class="tab" data-tab="battle">2 · Battle Sim</button>
     <button class="tab" data-tab="mc">3 · Monte Carlo</button>
+    <button class="tab" data-tab="log">Log</button>
     <button class="tab" data-tab="rules">Rules</button>
   </div>
 
@@ -171,9 +184,9 @@
               <button class="primary" id="btnDamage" disabled>Roll damage</button>
             </div>
             <div class="row" id="playerDice" style="margin-top:14px">
-              <div><label>Fleet A d20 — player roll</label><input type="number" id="initA" min="1" max="20" placeholder="empty = sim rolls"></div>
+              <div><label id="labInitA">Fleet A d20 — player roll</label><input type="number" id="initA" min="1" max="20" placeholder="empty = sim rolls"></div>
               <div id="wrapReckA" class="hidden"><label>Fleet A Reckless d4</label><input type="number" id="reckA" min="1" max="4" placeholder="empty = sim rolls"></div>
-              <div><label>Fleet B d20 — player roll</label><input type="number" id="initB" min="1" max="20" placeholder="empty = sim rolls"></div>
+              <div><label id="labInitB">Fleet B d20 — player roll</label><input type="number" id="initB" min="1" max="20" placeholder="empty = sim rolls"></div>
               <div id="wrapReckB" class="hidden"><label>Fleet B Reckless d4</label><input type="number" id="reckB" min="1" max="4" placeholder="empty = sim rolls"></div>
             </div>
             <p class="faint" id="hint" style="margin:10px 0 0"></p>
@@ -205,6 +218,17 @@
           <div style="flex:0 0 auto"><button class="primary" id="btnMC">Run</button></div>
         </div>
         <div id="mcOut" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── LOG ───────────────── -->
+  <section id="tab-log" class="hidden">
+    <div class="card">
+      <h2>Battle log <span class="btns"><button class="danger" id="btnClearArchive">Delete all</button></span></h2>
+      <div class="body">
+        <p class="faint" style="margin:0 0 12px">Finished battles are saved on this computer and stay after you close the page. Delete tests whenever you like. Nothing is uploaded.</p>
+        <div id="archiveList"></div>
       </div>
     </div>
   </section>
@@ -243,7 +267,7 @@
       </div>
     </div>
     <div class="note" style="margin-top:16px">
-      Fixed rules from the document: initiative = d20 + (Martial + Stewardship) ÷ divisor + traits (Sailor +1/level, Reckless ±d4, Organizer +1, Seastone Chair +2, Bloodvyne +1, Riptide +1, Myrish Eye +2). Flee / pursuit = contested d20 + (Martial + Intrigue) ÷ 6; pursuer adds Crow's Nest +3 and +2 if its fleet is only longships / Swan / Iron; the fleeing side adds Ironwood Oars +3; Swan Ship adds +3 both ways. Difference &gt; 5: caught (battle continues next round); −1 to 5: one attack then escape; otherwise escape. Each side may attempt to flee once per battle, after a round's damage — the table asks surrender / flee / keep fighting once remaining hulls are posted. Capture is rolled once at the end of the battle (flee, annihilation, or after a failed/partial pursuit): 1d10 per defeated hull, pooled by type. Ships that escape are not rolled. The fleeing or destroyed side does not capture. If the enemy declines to pursue, remaining ships escape and then the standing side rolls capture on wrecks. Swan Ship: 10% to dodge an entire enemy turn. Damage is pooled. v3 kill order: longships, then galleys, then the dromond. Current / table (naval admin): the dromond is always last; if both longships and galleys remain, half the damage is assigned to each (odd point to galleys); leftover from a type that is wiped overflows to remaining escorts, then the dromond. Each defeated hull is captured with 1d10 per ship (pool by type, the way Dice Maiden is used at the table): a natural 10 is a prize; Boarding Ramps also captures on a 9. Captured ships do not fight for the capturer this battle. Dragons cannot be captured.
+      Fixed rules from the document: initiative = d20 + (Martial + Stewardship) ÷ divisor + traits (Sailor +1/level, Reckless ±d4, Organizer +1, Seastone Chair +2, Bloodvyne +1, Riptide +1, Myrish Eye +2). Flee / pursuit = contested d20 + (Martial + Intrigue) ÷ 6; pursuer adds Crow's Nest +3 and +2 if its fleet is only longships / Swan / Iron; the fleeing side adds Ironwood Oars +3; Swan Ship adds +3 both ways. Difference &gt; 5: caught (battle continues next round); −1 to 5: one attack then escape; otherwise escape. Each side may attempt to flee once per battle, after a round's damage — the table asks surrender / flee / keep fighting once remaining hulls are posted. Capture is rolled once at the end of the battle (flee, annihilation, or after a failed/partial pursuit): 1d10 per defeated hull, pooled by type. Ships that escape are not rolled. The fleeing or destroyed side does not capture. If the enemy declines to pursue, remaining ships escape and then the standing side rolls capture on wrecks. Swan Ship: 10% to dodge an entire enemy turn. Damage is pooled. v3 kill order: longships, then galleys, then the dromond. Current / table (naval admin): the dromond is always last; if both longships and galleys remain, half the damage is assigned to each (odd point to galleys); leftover from a type that is wiped overflows to remaining escorts, then the dromond. Each defeated hull is captured with 1d10 per ship (pool by type, the way Dice Maiden is used at the table): a natural 10 is a prize; Boarding Ramps also captures on a 9. Captured ships do not fight for the capturer this battle. Dragons cannot be captured. j1 (based on Current): no initiative and no round-1 brace. Each round both fleets roll d20 + the same captain extras as initiative, now called damage mod. That total maps to a percent of the ship-dice result (1→5%, 20→100%, 30+→150%). Both volleys use the hulls present at the start of the round and land at the same time.
     </div>
   </section>
 </main>
@@ -271,11 +295,21 @@ const dromHp = kind => r1(rules.drom[kind][0] * rules.hpMult);
 /* ───────────────────────────── RULES ───────────────────────────── */
 const DROM_PERK = { Andal: '—', Iron: 'Pursuit bonus eligible', Swan: '10% dodge · +3 flee/pursue · pursuit eligible', Essosi: '— (trade)', Ibben: '+2 HP longships · +3 HP galleys (flat)', 'Far Eastern': '—' };
 const PRESETS = {
-  v3: { label: 'Proposed v3', hpMult: 1.5, galN: 2, galS: 6, div: 6, capMode: 'weight', capRatio: 1.5, capFloor: 20, culture: 2, brace: false, captureOn: 10, rampsOn: 9,
+  v3: { label: 'Proposed v3', hpMult: 1.5, galN: 2, galS: 6, div: 6, capMode: 'weight', capRatio: 1.5, capFloor: 20, culture: 2, brace: false, dmgMod: false, captureOn: 10, rampsOn: 9,
     drom: { Andal: [45, 2, 10, 6], Iron: [30, 3, 6, 4], Swan: [30, 2, 6, 4], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
-  current: { label: 'Current rules', hpMult: 1, galN: 1, galS: 10, div: 6, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: true, captureOn: 10, rampsOn: 9,
+  current: { label: 'Current rules', hpMult: 1, galN: 1, galS: 10, div: 6, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: true, dmgMod: false, captureOn: 10, rampsOn: 9,
+    drom: { Andal: [40, 2, 10, 5], Iron: [30, 3, 6, 4], Swan: [20, 1, 6, 3], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
+  j1: { label: 'j1', hpMult: 1, galN: 1, galS: 10, div: 6, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: false, dmgMod: true, captureOn: 10, rampsOn: 9,
     drom: { Andal: [40, 2, 10, 5], Iron: [30, 3, 6, 4], Swan: [20, 1, 6, 3], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
 };
+const simMode = () => !!rules.dmgMod;
+const capModName = () => simMode() ? 'damage mod' : 'initiative';
+function dmgModPct(total){
+  const n = Math.ceil(Number(total) || 0);
+  if (n <= 1) return 5;
+  if (n >= 30) return 150;
+  return n * 5;
+}
 let rules = JSON.parse(JSON.stringify(PRESETS.v3));
 
 function rulesToForm(){
@@ -292,15 +326,19 @@ function rulesToForm(){
 }
 /** Header switcher + one-line summary of the active ruleset, shown on every tab. */
 function updateRulesetUI(){
-  const active = rules.label === 'Proposed v3' ? 'v3' : rules.label === 'Current rules' ? 'current' : null;
+  const active = rules.label === 'Proposed v3' ? 'v3' : rules.label === 'Current rules' ? 'current' : rules.label === 'j1' ? 'j1' : null;
   document.querySelectorAll('.seg').forEach(b => { b.classList.toggle('active', b.dataset.preset === active); b.classList.toggle('cur', b.dataset.preset === 'current'); });
   document.getElementById('rulesetLabel').textContent = active ? '' : '(custom — edited on the Rules tab)';
   const capTxt = rules.capMode === 'none' ? 'no engagement cap — every ship rolls' : `engagement cap ${rules.capRatio}× enemy ${rules.capMode === 'weight' ? 'hull weight' : 'hull count'} (min ${rules.capFloor})`;
   const ko = document.getElementById('killOrder')?.value;
   const koTxt = ko === 'split' ? 'kill order split LS/GA, dromond last' : 'kill order LS → GA → dromond';
   const d = rules.drom;
+  const initTxt = simMode() ? 'simultaneous damage · d20+captain → 5% per point (30+ = 150%) · no brace' : `round-1 brace ${rules.brace ? 'on' : 'off'} &nbsp;|&nbsp; captain (Mar+Stew)÷${rules.div} (ceil)`;
   document.getElementById('rulesBar').innerHTML =
-    `<b>${rules.label}:</b> longship ${r1(8 * rules.hpMult)} HP · 1d6 &nbsp;|&nbsp; galley ${r1(16 * rules.hpMult)} HP · ${rules.galN}d${rules.galS} &nbsp;|&nbsp; ${capTxt} &nbsp;|&nbsp; ${koTxt} &nbsp;|&nbsp; round-1 brace ${rules.brace ? 'on' : 'off'} &nbsp;|&nbsp; captain (Mar+Stew)÷${rules.div} (ceil) &nbsp;|&nbsp; Shieldman/Hewett +${rules.culture} HP &nbsp;|&nbsp; capture 1d10≥${rules.captureOn} (Boarding Ramps ≥${rules.rampsOn}) &nbsp;|&nbsp; Andal dromond ${r1(d.Andal[0] * rules.hpMult)} HP · ${d.Andal[1]}d${d.Andal[2]} &nbsp;|&nbsp; Swan ${r1(d.Swan[0] * rules.hpMult)} HP · ${d.Swan[1]}d${d.Swan[2]}`;
+    `<b>${rules.label}:</b> longship ${r1(8 * rules.hpMult)} HP · 1d6 &nbsp;|&nbsp; galley ${r1(16 * rules.hpMult)} HP · ${rules.galN}d${rules.galS} &nbsp;|&nbsp; ${capTxt} &nbsp;|&nbsp; ${koTxt} &nbsp;|&nbsp; ${initTxt} &nbsp;|&nbsp; Shieldman/Hewett +${rules.culture} HP &nbsp;|&nbsp; capture 1d10≥${rules.captureOn} (Boarding Ramps ≥${rules.rampsOn}) &nbsp;|&nbsp; Andal dromond ${r1(d.Andal[0] * rules.hpMult)} HP · ${d.Andal[1]}d${d.Andal[2]} &nbsp;|&nbsp; Swan ${r1(d.Swan[0] * rules.hpMult)} HP · ${d.Swan[1]}d${d.Swan[2]}`;
+  const labA = document.getElementById('labInitA'), labB = document.getElementById('labInitB');
+  if (labA) labA.textContent = simMode() ? 'Fleet A d20 — damage mod' : 'Fleet A d20 — player roll';
+  if (labB) labB.textContent = simMode() ? 'Fleet B d20 — damage mod' : 'Fleet B d20 — player roll';
 }
 /** Switch the whole app to a preset. Any battle in progress is restarted under the new rules so HP and dice stay consistent. */
 function applyPreset(key){
@@ -319,8 +357,9 @@ function formToRules(){
   rules.brace = document.getElementById('r_brace').checked;
   document.querySelectorAll('#dromTable input').forEach(inp => { rules.drom[inp.dataset.drom][Number(inp.dataset.i)] = Number(inp.value); });
   for (const name of Object.keys(rules.drom)) rules.drom[name][3] = r1(rules.drom[name][0] / 8);
-  const matches = p => ['hpMult','galN','galS','div','capMode','capRatio','capFloor','culture','brace','captureOn','rampsOn'].every(k => rules[k] === p[k]) && JSON.stringify(rules.drom) === JSON.stringify(p.drom);
-  rules.label = matches(PRESETS.v3) ? 'Proposed v3' : matches(PRESETS.current) ? 'Current rules' : 'Custom';
+  if (rules.dmgMod == null) rules.dmgMod = false;
+  const matches = p => ['hpMult','galN','galS','div','capMode','capRatio','capFloor','culture','brace','captureOn','rampsOn'].every(k => rules[k] === p[k]) && !!rules.dmgMod === !!p.dmgMod && JSON.stringify(rules.drom) === JSON.stringify(p.drom);
+  rules.label = matches(PRESETS.v3) ? 'Proposed v3' : matches(PRESETS.current) ? 'Current rules' : matches(PRESETS.j1) ? 'j1' : 'Custom';
   updateRulesetUI();
   save();
 }
@@ -387,12 +426,12 @@ function fleetForm(side){
         <div><label>Sailor trait level</label><select data-s="${side}" data-k="sailor">${[0,1,2,3].map(v => `<option value="${v}" ${s.sailor == v ? 'selected' : ''}>${v === 0 ? 'none' : 'level ' + v + ' (+' + v + ')'}</option>`).join('')}</select></div>
       </div>
       <div class="chips">
-        ${chk(side,'reckless','Reckless (±d4 on initiative)',s)}${chk(side,'organizer','Organizer (+1)',s)}${chk(side,'seastone','Seastone Chair (+2)',s)}${chk(side,'bloodvyne','Bloodvyne (+1)',s)}${chk(side,'riptide','Riptide (+1)',s)}
+        ${chk(side,'reckless',`Reckless (±d4 on ${capModName()})`,s)}${chk(side,'organizer','Organizer (+1)',s)}${chk(side,'seastone','Seastone Chair (+2)',s)}${chk(side,'bloodvyne','Bloodvyne (+1)',s)}${chk(side,'riptide','Riptide (+1)',s)}
       </div>
     </fieldset>
     <fieldset><legend>Dromond upgrades &amp; extras</legend>
       <div class="chips">
-        ${chk(side,'myrish','Myrish Eye (+2 initiative)',s)}${chk(side,'crow',"Crow's Nest (+3 when pursuing)",s)}${chk(side,'ironwood','Ironwood Oars (+3 when fleeing)',s)}${chk(side,'boarding','Boarding Ramps (capture on 9–10)',s)}
+        ${chk(side,'myrish',`Myrish Eye (+2 ${capModName()})`,s)}${chk(side,'crow',"Crow's Nest (+3 when pursuing)",s)}${chk(side,'ironwood','Ironwood Oars (+3 when fleeing)',s)}${chk(side,'boarding','Boarding Ramps (capture on 9–10)',s)}
         ${chk(side,'dragon','Dragon present (12d8 per turn)',s)}${chk(side,'scorpion','Scorpion (can shoot enemy dragon)',s)}
       </div>
       <div class="row" style="margin-top:6px"><div style="flex:0 1 260px"><label>Scorpion hit chance per turn (%) — set by staff</label><input type="number" min="0" max="100" data-s="${side}" data-k="scorpionPct" value="${s.scorpionPct}"></div></div>
@@ -451,7 +490,7 @@ function buildFleet(spec, side){
     startLs: Number(h.ls) || 0, startGa: Number(h.ga) || 0,
     ls: Number(h.ls) || 0, ga: Number(h.ga) || 0,
     startDrom: Number(h.drom) || 0, drom: Number(h.drom) || 0, dromType: h.dromType || 'none',
-    lostLs: 0, lostGa: 0, lostDrom: 0, hadPrimary: false
+    lostLs: 0, lostGa: 0, lostDrom: 0, capLs: 0, capGa: 0, capDrom: 0, hadPrimary: false
   }));
   const dromShips = [];
   houses.forEach((h, i) => {
@@ -628,10 +667,15 @@ function chargeHouses(f, sunk){
   const lsT = allocateByShare(f.houses.map(h => h.startLs), f.houses.map(h => h.ls), deadLs);
   const gaT = allocateByShare(f.houses.map(h => h.startGa), f.houses.map(h => h.ga), deadGa);
   const bits = [];
+  const lsSunk = sunk.filter(s => s.t === 'LS');
+  const gaSunk = sunk.filter(s => s.t === 'GA');
+  let li = 0, gi = 0;
   f.houses.forEach((h, i) => {
     const parts = [];
     if (lsT[i]){ h.ls -= lsT[i]; h.lostLs += lsT[i]; parts.push(`−${lsT[i]} longship${lsT[i] > 1 ? 's' : ''}`); }
     if (gaT[i]){ h.ga -= gaT[i]; h.lostGa += gaT[i]; parts.push(`−${gaT[i]} galley${gaT[i] > 1 ? 's' : ''}`); }
+    for (let k = 0; k < lsT[i]; k++){ if (lsSunk[li]){ lsSunk[li].house = i; lsSunk[li].houseName = h.name; li++; } }
+    for (let k = 0; k < gaT[i]; k++){ if (gaSunk[gi]){ gaSunk[gi].house = i; gaSunk[gi].houseName = h.name; gi++; } }
     if (parts.length) bits.push(`${h.name} ${parts.join(', ')}`);
   });
   sunk.filter(s => s.isDrom).forEach(sh => {
@@ -640,13 +684,29 @@ function chargeHouses(f, sunk){
       const h = f.houses[i];
       h.drom = Math.max(0, h.drom - 1);
       h.lostDrom += 1;
+      sh.houseName = h.name;
       bits.push(`${h.name} −${sh.t} dromond${sh.isPrimary ? ' (primary)' : ''}`);
     }
   });
   return bits.length ? ` House split: ${bits.join('; ')}.` : '';
 }
+function houseLostBits(h){
+  const lost = [];
+  if (h.lostLs) lost.push(nHulls(h.lostLs, 'longship'));
+  if (h.lostGa) lost.push(nHulls(h.lostGa, 'galley'));
+  if (h.lostDrom) lost.push(nHulls(h.lostDrom, 'dromond'));
+  return lost;
+}
+function houseCapBits(h){
+  const cap = [];
+  if (h.capLs) cap.push(nHulls(h.capLs, 'longship'));
+  if (h.capGa) cap.push(nHulls(h.capGa, 'galley'));
+  if (h.capDrom) cap.push(nHulls(h.capDrom, 'dromond'));
+  return cap;
+}
 function formatHouses(f){
   return f.houses.map((h, i) => {
+    if (!h.startLs && !h.startGa && !h.startDrom) return '';
     const bits = [];
     if (h.startLs) bits.push(`${h.ls}/${h.startLs} longships`);
     if (h.startGa) bits.push(`${h.ga}/${h.startGa} galleys`);
@@ -654,9 +714,11 @@ function formatHouses(f){
       const prim = h.hadPrimary ? (f.ships.some(s => s.isPrimary && s.house === i) ? ', primary' : ', primary lost') : '';
       bits.push(`${h.drom}/${h.startDrom} ${h.dromType && h.dromType !== 'none' ? h.dromType + ' ' : ''}dromond${h.startDrom > 1 ? 's' : ''}${prim}`);
     }
-    const lost = h.lostLs + h.lostGa + h.lostDrom;
-    return `${h.name}: ${bits.join(', ') || '—'}${lost ? ` (lost ${lost})` : ''}`;
-  }).join(' · ');
+    const lost = houseLostBits(h);
+    const cap = houseCapBits(h);
+    const extra = [lost.length ? `lost ${lost.join(', ')}` : '', cap.length ? `captured ${cap.join(', ')}` : ''].filter(Boolean);
+    return `<div><b style="color:var(--parchment);font-weight:600">${esc(h.name)}</b> ${bits.join(', ') || '—'}${extra.length ? ` (${extra.join(' · ')})` : ''}</div>`;
+  }).join('');
 }
 function nHulls(n, word){ return `${n} ${word}${n === 1 ? '' : 's'}`; }
 function remainingByHouse(f){
@@ -671,12 +733,11 @@ function remainingByHouse(f){
       const prim = h.hadPrimary && f.ships.some(s => s.isPrimary && s.house === i) ? ' (primary)' : '';
       left.push(`${h.drom} ${typ}dromond${h.drom > 1 ? 's' : ''}${prim}`);
     }
-    const lost = [];
-    if (h.lostLs) lost.push(nHulls(h.lostLs, 'longship'));
-    if (h.lostGa) lost.push(nHulls(h.lostGa, 'galley'));
-    if (h.lostDrom) lost.push(nHulls(h.lostDrom, 'dromond'));
-    if (!left.length) return `  ${h.name}: none remaining${lost.length ? ` (lost ${lost.join(', ')})` : ''}`;
-    return `  ${h.name}: ${left.join(', ')}${lost.length ? ` remaining (lost ${lost.join(', ')})` : ''}`;
+    const lost = houseLostBits(h);
+    const cap = houseCapBits(h);
+    const extra = [lost.length ? `lost ${lost.join(', ')}` : '', cap.length ? `captured ${cap.join(', ')}` : ''].filter(Boolean);
+    if (!left.length) return `  ${h.name}: none remaining${extra.length ? ` (${extra.join('; ')})` : ''}`;
+    return `  ${h.name}: ${left.join(', ')} remaining${extra.length ? ` (${extra.join('; ')})` : ''}`;
   }).filter(Boolean);
   const unowned = f.ships.filter(s => s.isDrom && !(s.house >= 0));
   if (unowned.length){
@@ -691,7 +752,8 @@ function formatPrizes(f){
   return Object.entries(tally).map(([k, v]) => `${v} ${k}${v > 1 && !k.endsWith('dromond') ? 's' : ''}`).join(', ');
 }
 /** 1d10 per defeated ship, pooled by type. Each die ≥ need (10, or 9 with Boarding Ramps) captures that hull. */
-function tryCapture(att, sunk){
+function tryCapture(att, victim){
+  const sunk = victim.lost;
   const need = captureNeed(att);
   const groups = {};
   for (const sh of sunk){ const k = typePool(sh); (groups[k] ||= []).push(sh); }
@@ -699,12 +761,25 @@ function tryCapture(att, sunk){
   for (const [k, ships] of Object.entries(groups)){
     const rolls = ships.map(() => die(10));
     let hits = 0;
+    const from = {};
     ships.forEach((sh, i) => {
-      if (rolls[i] >= need){ att.prizes.push(sh); taken.push(shipLabel(sh)); hits++; }
+      if (rolls[i] >= need){
+        att.prizes.push(sh); taken.push(shipLabel(sh)); hits++;
+        const nm = sh.houseName || (sh.house >= 0 && victim.houses[sh.house] ? victim.houses[sh.house].name : '');
+        if (nm) from[nm] = (from[nm] || 0) + 1;
+        if (sh.house >= 0 && victim.houses[sh.house]){
+          const h = victim.houses[sh.house];
+          if (sh.t === 'LS') h.capLs++;
+          else if (sh.t === 'GA') h.capGa++;
+          else h.capDrom++;
+        }
+      }
       else wrecked.push(shipLabel(sh));
     });
-    const who = k.endsWith('dromond') ? k : k;
-    lines.push(`Roll ${ships.length}d10 for the ${who}: [${rolls.join(', ')}] = ${sum(rolls)}. You capture ${hits} ${hits === 1 ? (k.endsWith('s') ? k.slice(0, -1) : k) : k} (d10 ≥ ${need}${need < (rules.captureOn || 10) ? ', Boarding Ramps' : ''}).`);
+    const hitWord = hits === 1 ? (k.endsWith('s') ? k.slice(0, -1) : k) : k;
+    const fromNames = Object.keys(from);
+    const fromTxt = hits && fromNames.length ? (fromNames.length === 1 && from[fromNames[0]] === hits ? ` from ${fromNames[0]}` : ` from ${fromNames.map(n => `${n} ${from[n]}`).join(', ')}`) : '';
+    lines.push(`Roll ${ships.length}d10 for the ${k}: [${rolls.join(', ')}] = ${sum(rolls)}. You capture ${hits} ${hitWord}${fromTxt} (d10 ≥ ${need}${need < (rules.captureOn || 10) ? ', Boarding Ramps' : ''}).`);
   }
   return { taken, wrecked, lines, need };
 }
@@ -721,20 +796,25 @@ class Battle {
   add(cls, text, detail){ if (!this.quiet) this.log.push({ round: this.round, cls, text, detail }); }
   name(k){ return this.f(k).spec.name; }
 
-  initiative(manual){
-    if (this.over || (this.phase !== 'start' && this.phase !== 'flee')) return;
+  readPlayerDice(manual){
     if (manual){
       const a20 = readDie('initA', 1, 20), b20 = readDie('initB', 1, 20);
       const a4 = this.A.spec.reckless ? readDie('reckA', 1, 4) : null;
       const b4 = this.B.spec.reckless ? readDie('reckB', 1, 4) : null;
       if ([a20, b20, a4, b4].includes('invalid')){
         this.add('sys', 'Player dice must be a d20 (1–20), and Reckless a d4 (1–4), or left empty for the sim to roll.');
-        return;
+        return false;
       }
       this._manual = { A: { d20: a20, d4: a4 }, B: { d20: b20, d4: b4 } };
     } else {
       this._manual = null;
     }
+    return true;
+  }
+  initiative(manual){
+    if (simMode()) return this.simulRound(manual);
+    if (this.over || (this.phase !== 'start' && this.phase !== 'flee')) return;
+    if (!this.readPlayerDice(manual)) return;
     if (this.phase === 'flee') this.add('sys', 'Both sides keep fighting.');
     if (!this._initOpen){
       this.round++;
@@ -764,6 +844,34 @@ class Battle {
     this.braceSide = (this.round === 1 && rules.brace) ? this.other(this.first) : null;
     this.add('hi', `${this.name(this.first)} wins initiative and attacks first.${this.braceSide ? ` ${this.name(this.braceSide)} braces (round 1): half its damage roll is subtracted from the first hit.` : ''}`);
     this.phase = 'damage';
+  }
+  simulRound(manual){
+    if (this.over || (this.phase !== 'start' && this.phase !== 'flee')) return;
+    if (!this.readPlayerDice(manual)) return;
+    if (this.phase === 'flee') this.add('sys', 'Both sides keep fighting.');
+    this.round++;
+    this.add('r', `— Round ${this.round} —`);
+    const ta = this.initRoll(this.A), tb = this.initRoll(this.B);
+    const pa = dmgModPct(ta.total), pb = dmgModPct(tb.total);
+    this.add('A', `${this.name('A')} damage mod: ${ta.text} = ${r1(ta.total)} → ${pa}%`);
+    this.add('B', `${this.name('B')} damage mod: ${tb.text} = ${r1(tb.total)} → ${pb}%`);
+    if (manual){ clearDie('initA'); clearDie('initB'); clearDie('reckA'); clearDie('reckB'); }
+    this.add('hi', 'Both fleets strike at once. No brace.');
+    this.fireScorpion(this.A, this.B);
+    this.fireScorpion(this.B, this.A);
+    const va = this.buildVolley(this.A, this.B, false, pa);
+    const vb = this.buildVolley(this.B, this.A, false, pb);
+    this.resolveVolley(this.A, this.B, va, false);
+    this.resolveVolley(this.B, this.A, vb, false);
+    const aLive = alive(this.A), bLive = alive(this.B);
+    if (!aLive && !bLive) this.end(null, 'stalemate', 'Both fleets are destroyed in the same exchange.');
+    else if (!bLive) this.end('A', 'destroyed', `${this.name('B')} is annihilated. ${this.name('A')} holds the sea with ${desc(this.A)}.`);
+    else if (!aLive) this.end('B', 'destroyed', `${this.name('A')} is annihilated. ${this.name('B')} holds the sea with ${desc(this.B)}.`);
+    else {
+      this.add('sys', `End of round ${this.round}: ${this.name('A')} — ${desc(this.A)}  |  ${this.name('B')} — ${desc(this.B)}`);
+      this.add('hi', 'Surrender, flee, or keep fighting?');
+      this.phase = 'flee';
+    }
   }
   initRoll(f){
     const m = this._manual && this._manual[f.side];
@@ -818,6 +926,7 @@ class Battle {
   }
 
   damage(){
+    if (simMode()) return this.simulRound(false);
     if (this.over || this.phase !== 'damage') return;
     const first = this.f(this.first), second = this.f(this.other(this.first));
     this.attack(first, second, this.braceSide === second.side);
@@ -829,21 +938,27 @@ class Battle {
     }
   }
 
-  attack(att, def, brace){
-    if (this.over) return;
-    // scorpion vs dragon
+  fireScorpion(att, def){
     if (att.dragon && def.spec.scorpion && primaryOf(def) && def.spec.scorpionPct > 0){
       const d100 = die(100);
       if (d100 <= def.spec.scorpionPct){ att.dragon = false; this.add(def.side, `${def.spec.name}'s scorpion fires (d100 ${d100} ≤ ${def.spec.scorpionPct}%): the dragon is shot down!`); }
       else this.add(def.side, `${def.spec.name}'s scorpion fires (d100 ${d100} > ${def.spec.scorpionPct}%) and misses.`);
     }
-    if (!att.ships.length && !att.dragon) return;
+  }
+  buildVolley(att, def, brace, dmgPct){
+    if (!att.ships.length && !att.dragon) return { skip: true };
     if (hasSwan(def)){
       const d100 = die(100);
-      if (d100 <= 10){ this.add(def.side, `${def.spec.name}'s Swan Ship dodges the entire attack (d100 ${d100} ≤ 10).`); return; }
+      if (d100 <= 10){ this.add(def.side, `${def.spec.name}'s Swan Ship dodges the entire attack (d100 ${d100} ≤ 10).`); return { dodge: true }; }
     }
     const r = rollAttack(att, def, false);
-    let dmg = r.total; let braceTxt = '';
+    let dmg = r.total; let braceTxt = ''; let modTxt = '';
+    if (simMode()){
+      let p = dmgPct, mod = null;
+      if (p == null){ mod = this.initRoll(att); p = dmgModPct(mod.total); }
+      dmg = r1(r.total * p / 100);
+      modTxt = ` × ${p}%${mod ? ` (damage mod ${mod.text} = ${r1(mod.total)})` : ''}`;
+    }
     if (brace){ const b = rollAttack(def, att, true); const red = r1(b.total / 2); braceTxt = ` − brace ${red} (½ of ${b.total})`; dmg = Math.max(0, dmg - red); }
     const parts = Object.entries(r.byType).map(([k, v]) => `${v.ships} ${k} × ${v.dice} = ${v.total}`);
     if (r.dragon) parts.push(`dragon 12d8 = ${r.dragon}`);
@@ -859,15 +974,24 @@ class Battle {
         splitTxt = def.ships.filter(s => s.isDrom && !s.isPrimary).length ? ' — escorts first, extra dromonds, primary last' : ' — escorts first, dromond last';
       }
     }
-    const sunk = applyDamage(def, dmg);
+    return { r, dmg, braceTxt, modTxt, parts, capTxt, splitTxt };
+  }
+  resolveVolley(att, def, v, checkEnd){
+    if (!v || v.skip || v.dodge) return;
+    const sunk = applyDamage(def, v.dmg);
     if (sunk.length) def.lost.push(...sunk);
     const houseTxt = chargeHouses(def, sunk);
     const dTxt = sunk.length ? tallyDestroyed(sunk) : 'no ships destroyed';
     const wounded = def.ships.filter(s => s.hp < s.max);
     const leadTxt = wounded.length ? `; damaged ${wounded.map(s => `${shipLabel(s)} ${r1(s.hp)}/${r1(s.max)}`).join(', ')}` : '';
-    const detail = Object.entries(r.byType).map(([k, v]) => `${k}: [${v.rolls.join(' ')}]`).concat(r.dragon ? [`dragon: [${r.dragonRolls.join(' ')}]`] : []).join('\n');
-    this.add(att.side, `${att.spec.name} attacks: ${parts.join(' + ')}${braceTxt} → ${dmg} damage${splitTxt}${capTxt}. ${dTxt}${houseTxt}${leadTxt}.`, detail);
-    if (!alive(def)) this.end(att.side, 'destroyed', `${def.spec.name} is annihilated. ${att.spec.name} holds the sea with ${desc(att)}.`);
+    const detail = Object.entries(v.r.byType).map(([k, x]) => `${k}: [${x.rolls.join(' ')}]`).concat(v.r.dragon ? [`dragon: [${v.r.dragonRolls.join(' ')}]`] : []).join('\n');
+    this.add(att.side, `${att.spec.name} attacks: ${v.parts.join(' + ')}${v.modTxt}${v.braceTxt} → ${v.dmg} damage${v.splitTxt}${v.capTxt}. ${dTxt}${houseTxt}${leadTxt}.`, detail);
+    if (checkEnd && !alive(def)) this.end(att.side, 'destroyed', `${def.spec.name} is annihilated. ${att.spec.name} holds the sea with ${desc(att)}.`);
+  }
+  attack(att, def, brace){
+    if (this.over) return;
+    this.fireScorpion(att, def);
+    this.resolveVolley(att, def, this.buildVolley(att, def, brace, null), true);
   }
 
   /** Capture is rolled once, at the end: the side that holds the field rolls 1d10 per enemy hull already defeated. The fleeing/destroyed side does not capture. */
@@ -881,10 +1005,11 @@ class Battle {
       return;
     }
     this.add('hi', `Capture rolls — ${captor.spec.name} vs the ${victim.lost.length} defeated ${victim.spec.name} hull${victim.lost.length > 1 ? 's' : ''} (ships that fled are not rolled).`);
-    const cap = tryCapture(captor, victim.lost);
+    const cap = tryCapture(captor, victim);
     cap.lines.forEach(line => this.add(captor.side, line));
   }
   end(winner, how, text){
+    if (this.over) return;
     this.over = true; this.phase = 'over'; this.result = { winner, how };
     this.resolveEndCaptures(winner, how);
     for (const k of ['A', 'B']){
@@ -893,6 +1018,7 @@ class Battle {
     }
     const haul = ['A', 'B'].map(k => { const t = formatPrizes(this.f(k)); return t ? `${this.name(k)} captured ${t}` : ''; }).filter(Boolean).join('. ');
     this.add('end', haul ? `${text} ${haul}.` : text);
+    archiveBattle(this);
   }
 
   autoRound(){
@@ -929,7 +1055,7 @@ function startBattle(){
   setSeed(document.getElementById('seed').value.trim());
   battle = new Battle(false);
   const houseLine = f => f.houses.length ? ` Houses: ${f.houses.map(h => `${h.name} ${h.startLs} LS, ${h.startGa} GA${h.startDrom ? `, ${h.startDrom} ${h.dromType && h.dromType !== 'none' ? h.dromType + ' ' : ''}dromond${h.startDrom > 1 ? 's' : ''}` : ''}${h.hadPrimary ? ' (primary)' : ''}`).join('; ')}.` : '';
-  battle.add('sys', `${rules.label}. ${specs.A.name}: ${desc(battle.A)} (captain M${specs.A.mar}/S${specs.A.stew}/I${specs.A.intr}, init +${r1(battle.A.initBonus)}).${houseLine(battle.A)}  ${specs.B.name}: ${desc(battle.B)} (captain M${specs.B.mar}/S${specs.B.stew}/I${specs.B.intr}, init +${r1(battle.B.initBonus)}).${houseLine(battle.B)}${document.getElementById('seed').value ? ' Seed: ' + document.getElementById('seed').value : ''}`);
+  battle.add('sys', `${rules.label}. ${specs.A.name}: ${desc(battle.A)} (captain M${specs.A.mar}/S${specs.A.stew}/I${specs.A.intr}, ${capModName()} +${r1(battle.A.initBonus)}).${houseLine(battle.A)}  ${specs.B.name}: ${desc(battle.B)} (captain M${specs.B.mar}/S${specs.B.stew}/I${specs.B.intr}, ${capModName()} +${r1(battle.B.initBonus)}).${houseLine(battle.B)}${document.getElementById('seed').value ? ' Seed: ' + document.getElementById('seed').value : ''}`);
   showTab('battle'); render();
 }
 function render(){
@@ -944,12 +1070,12 @@ function render(){
       <div class="big">${f.ships.length} <span class="meta">hulls</span> ${f.dragon ? '<span class="meta">+ dragon</span>' : ''}</div>
       <div class="bar"><i style="width:${startHp ? Math.min(100, 100 * hp / startHp) : 0}%"></i></div>
       <div class="meta">${r1(hp)} / ${r1(startHp)} HP · weight ${r1(weight(f))} · ${desc(f)}</div>
-      <div class="meta" style="margin-top:6px">Initiative +${r1(f.initBonus)} · flee/pursue +${r1(f.fleeBonus)}${pursuitEligible(f) && f.ships.length ? ' (+2 pursuit: light fleet)' : ''}${f.fled ? ' · flee attempt used' : ''}${f.prizes.length ? ' · prizes: ' + formatPrizes(f) : ''}</div>
-      ${f.houses.length ? `<div class="meta" style="margin-top:6px">${formatHouses(f)}</div>` : ''}
+      <div class="meta" style="margin-top:6px">${simMode() ? 'Damage mod' : 'Initiative'} +${r1(f.initBonus)} · flee/pursue +${r1(f.fleeBonus)}${pursuitEligible(f) && f.ships.length ? ' (+2 pursuit: light fleet)' : ''}${f.fled ? ' · flee attempt used' : ''}${f.prizes.length ? ' · prizes: ' + formatPrizes(f) : ''}</div>
+      ${f.houses.length ? `<div class="houses">${formatHouses(f)}</div>` : ''}
     </div>`;
   }).join('');
   const can = (ph) => !b.over && b.phase === ph;
-  document.getElementById('btnInit').textContent = can('flee') ? 'Keep fighting' : 'Roll initiative';
+  document.getElementById('btnInit').textContent = can('flee') ? 'Keep fighting' : (simMode() ? 'Roll damage' : 'Roll initiative');
   document.getElementById('btnInit').disabled = !(can('start') || can('flee'));
   ['initA','initB','reckA','reckB'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = !(can('start') || can('flee')); });
   document.getElementById('wrapReckA').classList.toggle('hidden', !b.A.spec.reckless);
@@ -958,10 +1084,11 @@ function render(){
   document.getElementById('btnFleeB').disabled = !(can('flee') && !b.B.fled);
   document.getElementById('btnPursue').disabled = !can('pursue');
   document.getElementById('btnLetGo').disabled = !can('pursue');
+  document.getElementById('btnDamage').classList.toggle('hidden', simMode());
   document.getElementById('btnDamage').disabled = !can('damage');
   document.getElementById('btnAutoRound').disabled = b.over;
   document.getElementById('btnAutoBattle').disabled = b.over;
-  document.getElementById('hint').textContent = b.over ? 'Battle resolved. Copy the log for the ticket, or Reset to run another.' : b.phase === 'start' ? (b._initOpen ? 'Initiative tied, please reroll.' : 'Enter any d20s the players already rolled, then Roll initiative — empty fields are rolled by the sim. The sim adds (Mar+Stew)÷divisor and traits.') : b.phase === 'damage' ? 'Roll damage — the initiative winner strikes first.' : b.phase === 'flee' ? 'After the round: either side may flee (once per battle), or roll initiative to keep fighting.' : b.phase === 'pursue' ? `${b.name(b.fleeing)} is running. Pursue (contested roll) or let them go — remaining ships escape. Capture is rolled at the end, only on hulls already defeated.` : '';
+  document.getElementById('hint').textContent = b.over ? 'Battle resolved and saved to the Log tab. Copy for the ticket, or Reset to run another.' : b.phase === 'start' ? (b._initOpen ? 'Initiative tied, please reroll.' : (simMode() ? 'Enter any d20s for damage mod, then Roll damage — both fleets strike at once. The sim adds (Mar+Stew)÷divisor and traits, then maps the total to a percent of the ship dice (1→5%, 20→100%, 30+→150%).' : 'Enter any d20s the players already rolled, then Roll initiative — empty fields are rolled by the sim. The sim adds (Mar+Stew)÷divisor and traits.')) : b.phase === 'damage' ? 'Roll damage — the initiative winner strikes first.' : b.phase === 'flee' ? (simMode() ? 'After the round: either side may flee (once per battle), or keep fighting for another simultaneous exchange.' : 'After the round: either side may flee (once per battle), or roll initiative to keep fighting.') : b.phase === 'pursue' ? `${b.name(b.fleeing)} is running. Pursue (contested roll) or let them go — remaining ships escape. Capture is rolled at the end, only on hulls already defeated.` : '';
   const logEl = document.getElementById('log');
   logEl.innerHTML = b.log.map(e => e.cls === 'r' ? `<div class="r">${e.text}</div>` : `<div class="e ${e.cls}">${esc(e.text)}${e.detail ? `<details><summary>dice</summary>${esc(e.detail)}</details>` : ''}</div>`).join('');
   logEl.scrollTop = logEl.scrollHeight;
@@ -1020,6 +1147,66 @@ function runMC(){
     <p class="faint" style="margin-top:22px">${specs.A.name}: ${specs.A.ls} LS, ${specs.A.ga} GA, ${specs.A.drom}${specs.A.dragon ? ', dragon' : ''}, captain M${specs.A.mar}/S${specs.A.stew}/I${specs.A.intr}. ${specs.B.name}: ${specs.B.ls} LS, ${specs.B.ga} GA, ${specs.B.drom}${specs.B.dragon ? ', dragon' : ''}, captain M${specs.B.mar}/S${specs.B.stew}/I${specs.B.intr}.</p>`;
 }
 
+/* ───────────────────────────── BATTLE ARCHIVE ───────────────────────────── */
+const ARCHIVE_KEY = 'navalBattleArchive';
+let archive = [];
+function loadArchive(){
+  try { const raw = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]'); archive = Array.isArray(raw) ? raw : []; } catch (e) { archive = []; }
+}
+function persistArchive(){
+  try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); return true; }
+  catch (e) { alert('Could not save the battle log (this browser is out of space). Delete old entries on the Log tab and try again.'); return false; }
+}
+function archiveText(entry){
+  return ['**Naval battle — ' + (entry.rules || '') + '**', ...entry.log.map(e => e.cls === 'r' ? '\n' + e.text : (e.cls === 'end' ? '**' + e.text + '**' : e.text))].join('\n');
+}
+function archiveBattle(b){
+  if (!b || b.quiet || b.archived) return;
+  b.archived = true;
+  const how = b.result && b.result.how;
+  const winner = b.result && b.result.winner ? b.name(b.result.winner) : null;
+  let outcome = 'Unresolved';
+  if (how === 'escaped') outcome = `${winner} escaped`;
+  else if (how === 'destroyed') outcome = `${winner} holds the sea`;
+  else if (how === 'stalemate') outcome = 'Stalemate';
+  archive.unshift({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    at: new Date().toISOString(),
+    rules: rules.label,
+    a: specs.A.name, b: specs.B.name,
+    outcome, rounds: b.round,
+    seed: (document.getElementById('seed').value || '').trim(),
+    log: b.log.map(e => ({ cls: e.cls, text: e.text, detail: e.detail || '' }))
+  });
+  persistArchive();
+}
+function deleteArchive(id){
+  archive = archive.filter(e => e.id !== id);
+  persistArchive(); renderArchive();
+}
+function renderArchive(){
+  const el = document.getElementById('archiveList');
+  if (!el) return;
+  if (!archive.length){ el.innerHTML = '<p class="muted">No finished battles yet.</p>'; return; }
+  el.innerHTML = archive.map(e => {
+    const when = e.at ? new Date(e.at).toLocaleString() : '';
+    const logHtml = (e.log || []).map(row => row.cls === 'r' ? `<div class="r">${esc(row.text)}</div>` : `<div class="e ${esc(row.cls)}">${esc(row.text)}${row.detail ? `<details><summary>dice</summary>${esc(row.detail)}</details>` : ''}</div>`).join('');
+    return `<details class="arch-item">
+      <summary>
+        <span class="when">${esc(when)}</span>
+        <span class="vs">${esc(e.a)} vs ${esc(e.b)}</span>
+        <span class="out">${esc(e.outcome)}</span>
+        <span class="meta">${e.rounds || 0} round${e.rounds === 1 ? '' : 's'} · ${esc(e.rules || '')}${e.seed ? ' · seed ' + esc(e.seed) : ''}</span>
+        <span class="arch-actions">
+          <button type="button" data-copy-archive="${esc(e.id)}">Copy</button>
+          <button type="button" class="danger" data-del-archive="${esc(e.id)}">Delete</button>
+        </span>
+      </summary>
+      <div class="log">${logHtml}</div>
+    </details>`;
+  }).join('');
+}
+
 /* ───────────────────────────── PERSISTENCE & WIRING ───────────────────────────── */
 function save(){ try { localStorage.setItem('navalResolver', JSON.stringify({ specs, rules, seed: document.getElementById('seed').value, killOrder: killOrder() })); } catch (e) {} }
 function load(){
@@ -1032,13 +1219,14 @@ function load(){
       return s;
     };
     specs = { A: tidy(d.specs.A, 'A'), B: tidy(d.specs.B, 'B') };
-  } if (d.rules) rules = { captureOn: 10, rampsOn: 9, ...d.rules }; if (d.seed) document.getElementById('seed').value = d.seed; if (rules.label === 'Proposed v3') document.getElementById('killOrder').value = 'escorts'; else if (rules.label === 'Current rules') document.getElementById('killOrder').value = 'split'; else if (d.killOrder && d.killOrder !== 'flagship') document.getElementById('killOrder').value = d.killOrder; } } catch (e) {}
+  } if (d.rules) rules = { captureOn: 10, rampsOn: 9, dmgMod: false, ...d.rules }; if (d.seed) document.getElementById('seed').value = d.seed; if (rules.label === 'Proposed v3') document.getElementById('killOrder').value = 'escorts'; else if (rules.label === 'Current rules' || rules.label === 'j1') document.getElementById('killOrder').value = 'split'; else if (d.killOrder && d.killOrder !== 'flagship') document.getElementById('killOrder').value = d.killOrder; } } catch (e) {}
 }
 function showTab(id){
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
-  for (const t of ['setup', 'battle', 'mc', 'rules']) document.getElementById('tab-' + t).classList.toggle('hidden', t !== id);
+  for (const t of ['setup', 'battle', 'mc', 'log', 'rules']) document.getElementById('tab-' + t).classList.toggle('hidden', t !== id);
   if (id === 'setup') renderForms();
   if (id === 'battle' && !battle) startBattle();
+  if (id === 'log') renderArchive();
 }
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 document.getElementById('goBattle').addEventListener('click', startBattle);
@@ -1059,8 +1247,28 @@ document.querySelectorAll('.seg').forEach(b => b.addEventListener('click', () =>
 document.getElementById('tab-rules').addEventListener('input', formToRules);
 document.getElementById('seed').addEventListener('input', save);
 document.getElementById('killOrder').addEventListener('change', () => { save(); updateRulesetUI(); });
+document.getElementById('archiveList').addEventListener('click', e => {
+  const copyBtn = e.target.closest('[data-copy-archive]');
+  const delBtn = e.target.closest('[data-del-archive]');
+  if (copyBtn){
+    e.preventDefault(); e.stopPropagation();
+    const entry = archive.find(x => x.id === copyBtn.dataset.copyArchive);
+    if (!entry) return;
+    navigator.clipboard.writeText(archiveText(entry)).then(() => { copyBtn.textContent = 'Copied'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1200); });
+    return;
+  }
+  if (delBtn){
+    e.preventDefault(); e.stopPropagation();
+    deleteArchive(delBtn.dataset.delArchive);
+  }
+});
+document.getElementById('btnClearArchive').addEventListener('click', () => {
+  if (!archive.length) return;
+  if (!confirm('Delete every saved battle on this computer?')) return;
+  archive = []; persistArchive(); renderArchive();
+});
 
-load(); rulesToForm(); renderForms();
+load(); loadArchive(); rulesToForm(); renderForms(); renderArchive();
 </script>
 </body>
 </html>
