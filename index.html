@@ -658,6 +658,32 @@ function formatHouses(f){
     return `${h.name}: ${bits.join(', ') || '—'}${lost ? ` (lost ${lost})` : ''}`;
   }).join(' · ');
 }
+function nHulls(n, word){ return `${n} ${word}${n === 1 ? '' : 's'}`; }
+function remainingByHouse(f){
+  if (!f.houses.length) return '';
+  const lines = f.houses.map((h, i) => {
+    if (!h.startLs && !h.startGa && !h.startDrom) return '';
+    const left = [];
+    if (h.ls) left.push(nHulls(h.ls, 'longship'));
+    if (h.ga) left.push(nHulls(h.ga, 'galley'));
+    if (h.drom){
+      const typ = h.dromType && h.dromType !== 'none' ? h.dromType + ' ' : '';
+      const prim = h.hadPrimary && f.ships.some(s => s.isPrimary && s.house === i) ? ' (primary)' : '';
+      left.push(`${h.drom} ${typ}dromond${h.drom > 1 ? 's' : ''}${prim}`);
+    }
+    const lost = [];
+    if (h.lostLs) lost.push(nHulls(h.lostLs, 'longship'));
+    if (h.lostGa) lost.push(nHulls(h.lostGa, 'galley'));
+    if (h.lostDrom) lost.push(nHulls(h.lostDrom, 'dromond'));
+    if (!left.length) return `  ${h.name}: none remaining${lost.length ? ` (lost ${lost.join(', ')})` : ''}`;
+    return `  ${h.name}: ${left.join(', ')}${lost.length ? ` remaining (lost ${lost.join(', ')})` : ''}`;
+  }).filter(Boolean);
+  const unowned = f.ships.filter(s => s.isDrom && !(s.house >= 0));
+  if (unowned.length){
+    lines.push(`  Unassigned: ${unowned.map(s => `${s.t} dromond${s.isPrimary ? ' (primary)' : ''}`).join(', ')}`);
+  }
+  return `${f.spec.name} remaining by house:\n${lines.join('\n')}`;
+}
 function formatPrizes(f){
   if (!f.prizes.length) return '';
   const tally = {};
@@ -863,7 +889,7 @@ class Battle {
     this.resolveEndCaptures(winner, how);
     for (const k of ['A', 'B']){
       const f = this.f(k);
-      if (f.houses.length) this.add(k, `${f.spec.name} by house — ${formatHouses(f)}.`);
+      if (f.houses.length) this.add(k, remainingByHouse(f));
     }
     const haul = ['A', 'B'].map(k => { const t = formatPrizes(this.f(k)); return t ? `${this.name(k)} captured ${t}` : ''; }).filter(Boolean).join('. ');
     this.add('end', haul ? `${text} ${haul}.` : text);
