@@ -3,119 +3,120 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <title>Westeros Rewritten Naval Battle Sim</title>
 <style>
-  :root{
-    --bg:#0c0b09;--panel:#16130f;--panel2:#1e1a14;--line:#3d3426;--text:#ede4d4;--muted:#b5a78c;--faint:#7a6e5a;
-    --accent:#c4a056;--ok:#7a9e6e;--warn:#d4a44a;--bad:#b54a3c;--a:#c9a24a;--b:#6a9aa0;
-    --ink:#1a1610;--parchment:#cbb892;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;background:var(--bg);color:var(--text);
-    font:14px/1.45 Georgia,"Palatino Linotype",Palatino,"Book Antiqua",serif;
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='80' viewBox='0 0 240 80'><path fill='none' stroke='%23c4a056' stroke-opacity='0.07' stroke-width='1.2' d='M0 40 Q30 22 60 40 T120 40 T180 40 T240 40'/><path fill='none' stroke='%236a9aa0' stroke-opacity='0.08' stroke-width='1' d='M0 52 Q40 70 80 52 T160 52 T240 52'/></svg>"),
-      radial-gradient(ellipse at top, #1c1812 0%, #0c0b09 55%);
-    background-attachment:fixed;
-  }
-  header{
-    padding:16px 24px 12px;border-bottom:1px solid var(--line);
-    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-    background:linear-gradient(#1a1610, #12100c);
-  }
-  header .mark{flex:0 0 auto;color:var(--accent);display:flex;align-items:center}
-  header .mark svg{display:block;height:42px;width:auto}
-  header .titles{display:flex;flex-direction:column;gap:2px;min-width:180px}
-  header h1{font-size:22px;margin:0;font-weight:600;letter-spacing:.04em;color:var(--parchment)}
-  header .sub{color:var(--muted);font-size:12.5px;font-style:italic}
-  header .switch{margin-left:auto;display:flex;align-items:center;gap:8px}
-  .seg{border-radius:2px;padding:5px 14px;color:var(--muted);letter-spacing:.03em}
-  .seg.active{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}
-  .seg.active.cur{background:var(--b);border-color:var(--b);color:var(--ink)}
-  .rulesbar{padding:7px 24px;background:var(--panel);border-bottom:1px solid var(--line);color:var(--muted);font-size:12.5px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-  .rulesbar b{color:var(--parchment);font-weight:600}
-  main{padding:16px 24px 48px;max-width:1500px;margin:0 auto}
-  .tabs{display:flex;gap:6px;margin:8px 0 16px}
-  .tab{padding:6px 14px;border:1px solid var(--line);border-radius:2px;cursor:pointer;color:var(--muted);background:transparent;letter-spacing:.03em}
-  .tab.active{background:var(--panel2);color:var(--parchment);border-color:var(--accent)}
-  .grid{display:grid;gap:16px}
-  .cols-2{grid-template-columns:1fr 1fr}
-  .cols-3{grid-template-columns:1fr 1fr 1fr}
-  .cols-21{grid-template-columns:2fr 1fr}
-  @media (max-width:1000px){.cols-2,.cols-3,.cols-21{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:2px;box-shadow:inset 0 1px 0 rgba(203,184,146,.08)}
-  .card h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0;padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:Georgia,serif}
-  .card .body{padding:14px}
-  .card.A h2{border-top:3px solid var(--a)} .card.B h2{border-top:3px solid var(--b)}
-  label{display:block;color:var(--muted);font-size:12px;margin-bottom:3px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-  input[type=number],input[type=text],select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:6px 8px;font:14px/1.4 system-ui,-apple-system,Segoe UI,sans-serif}
-  input[type=number]{-moz-appearance:textfield}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-  .row>*{flex:1 1 90px;min-width:80px}
-  .chk{display:flex;align-items:center;gap:6px;color:var(--text);font-size:13px;margin:4px 0;flex:1 1 150px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-  .chk input{margin:0}
-  .chips{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:6px}
-  fieldset{border:1px solid var(--line);border-radius:2px;padding:8px 12px 10px;margin:10px 0 0}
-  legend{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:0 6px}
-  .house-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
-  .house-row>*{flex:1 1 90px;min-width:70px}
-  .house-row .prim{flex:0 0 auto;min-width:0}
-  .house-row .prim .chk{margin:0 0 4px;white-space:nowrap;flex:0 0 auto}
-  .add-house{flex:0 0 36px;width:36px;height:36px;padding:0;font-size:22px;line-height:1;color:var(--accent);border-color:var(--accent)}
-  input[readonly]{opacity:.72;cursor:default}
-  button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:7px 12px;font:13px/1.3 system-ui,-apple-system,Segoe UI,sans-serif;cursor:pointer}
-  button:hover{border-color:var(--accent);color:var(--parchment)}
-  button.primary{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}
-  button.primary:hover{filter:brightness(1.08);color:var(--ink)}
-  button.danger{border-color:var(--bad);color:var(--bad)}
-  button:disabled{opacity:.4;cursor:not-allowed}
-  .btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .btns.secondary{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
-  .btns.secondary .label{color:var(--faint);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
-  .status{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .fleetstat{background:var(--panel2);border-radius:2px;padding:12px;border:1px solid var(--line)}
-  .fleetstat h3{margin:0 0 8px;font-size:16px;color:var(--parchment);font-weight:600}
-  .fleetstat .big{font-size:26px;font-weight:600;font-family:Georgia,serif}
-  .fleetstat .meta{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-  .fleetstat .houses{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
-  .fleetstat .houses div{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;padding:2px 0;line-height:1.4}
-  .bar{height:8px;background:#2a2418;border-radius:1px;overflow:hidden;margin:6px 0}
-  .bar>i{display:block;height:100%}
-  .A .bar>i{background:var(--a)} .B .bar>i{background:var(--b)}
-  table{width:100%;border-collapse:collapse;font-size:13px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-  th,td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:500;font-size:12px}
-  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-  .log{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;max-height:560px;overflow:auto;padding:10px 14px;background:#0a0907;border-radius:0;border-top:1px solid var(--line)}
-  .log .r{color:var(--accent);font-weight:600;margin-top:10px}
-  .log .e{margin:2px 0;white-space:pre-wrap}
-  .log .e.A{border-left:2px solid var(--a);padding-left:8px}
-  .log .e.B{border-left:2px solid var(--b);padding-left:8px}
-  .log .e.sys{color:var(--muted)}
-  .log .e.hi{color:var(--warn)}
-  .log .e.end{color:var(--ok);font-weight:600}
-  .arch-item{border:1px solid var(--line);margin:0 0 10px;background:var(--panel2)}
-  .arch-item summary{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 12px;cursor:pointer;list-style:none;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
-  .arch-item summary::-webkit-details-marker{display:none}
-  .arch-item .when{color:var(--faint);font-size:12px;min-width:11em}
-  .arch-item .vs{color:var(--parchment)}
-  .arch-item .out{color:var(--ok)}
-  .arch-item .meta{color:var(--muted);font-size:12px}
-  .arch-item .arch-actions{margin-left:auto;display:flex;gap:6px}
-  .arch-item .log{max-height:420px}
-  details{margin:2px 0 2px 12px;color:var(--faint)}
-  summary{cursor:pointer}
-  .phase{display:inline-block;padding:2px 8px;border-radius:2px;background:var(--panel2);color:var(--muted);font-size:12px;margin-left:8px;letter-spacing:.06em;text-transform:uppercase}
-  .muted{color:var(--muted)} .faint{color:var(--faint);font-size:12px}
-  .kpi{display:flex;gap:28px;flex-wrap:wrap;margin:8px 0 14px}
-  .kpi div b{display:block;font-size:24px;font-weight:600;color:var(--parchment)}
-  .kpi div span{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-  .hist{display:flex;align-items:flex-end;gap:3px;height:80px;margin-top:6px}
-  .hist i{display:block;flex:1;background:#3d3426;border-radius:2px 2px 0 0;position:relative}
-  .hist i::after{content:attr(data-l);position:absolute;top:100%;left:0;right:0;text-align:center;font-size:10px;color:var(--faint);font-style:normal}
-  .note{background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0;color:var(--muted);font-size:13px}
-  .hidden{display:none !important}
+:root{
+  --bg:#0c0b09;--panel:#16130f;--panel2:#1e1a14;--line:#3d3426;--text:#ede4d4;--muted:#b5a78c;--faint:#7a6e5a;
+  --accent:#c4a056;--ok:#7a9e6e;--warn:#d4a44a;--bad:#b54a3c;--a:#c9a24a;--b:#6a9aa0;
+  --ink:#1a1610;--parchment:#cbb892;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:14px/1.45 Georgia,"Palatino Linotype",Palatino,"Book Antiqua",serif;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='80' viewBox='0 0 240 80'><path fill='none' stroke='%23c4a056' stroke-opacity='0.07' stroke-width='1.2' d='M0 40 Q30 22 60 40 T120 40 T180 40 T240 40'/><path fill='none' stroke='%236a9aa0' stroke-opacity='0.08' stroke-width='1' d='M0 52 Q40 70 80 52 T160 52 T240 52'/></svg>"),
+    radial-gradient(ellipse at top, #1c1812 0%, #0c0b09 55%);
+  background-attachment:fixed;
+}
+header{
+  padding:16px 24px 12px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  background:linear-gradient(#1a1610, #12100c);
+}
+header .mark{flex:0 0 auto;color:var(--accent);display:flex;align-items:center}
+header .mark svg{display:block;height:42px;width:auto}
+header .titles{display:flex;flex-direction:column;gap:2px;min-width:180px}
+header h1{font-size:22px;margin:0;font-weight:600;letter-spacing:.04em;color:var(--parchment)}
+header .sub{color:var(--muted);font-size:12.5px;font-style:italic}
+header .switch{margin-left:auto;display:flex;align-items:center;gap:8px}
+.seg{border-radius:2px;padding:5px 14px;color:var(--muted);letter-spacing:.03em}
+.seg.active{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}
+.seg.active.cur{background:var(--b);border-color:var(--b);color:var(--ink)}
+.rulesbar{padding:7px 24px;background:var(--panel);border-bottom:1px solid var(--line);color:var(--muted);font-size:12.5px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.rulesbar b{color:var(--parchment);font-weight:600}
+main{padding:16px 24px 48px;max-width:1500px;margin:0 auto}
+.tabs{display:flex;gap:6px;margin:8px 0 16px}
+.tab{padding:6px 14px;border:1px solid var(--line);border-radius:2px;cursor:pointer;color:var(--muted);background:transparent;letter-spacing:.03em}
+.tab.active{background:var(--panel2);color:var(--parchment);border-color:var(--accent)}
+.grid{display:grid;gap:16px}
+.cols-2{grid-template-columns:1fr 1fr}
+.cols-3{grid-template-columns:1fr 1fr 1fr}
+.cols-21{grid-template-columns:2fr 1fr}
+@media (max-width:1000px){.cols-2,.cols-3,.cols-21{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:2px;box-shadow:inset 0 1px 0 rgba(203,184,146,.08)}
+.card h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0;padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:Georgia,serif}
+.card .body{padding:14px}
+.card.A h2{border-top:3px solid var(--a)} .card.B h2{border-top:3px solid var(--b)}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:3px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+input[type=number],input[type=text],select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:6px 8px;font:14px/1.4 system-ui,-apple-system,Segoe UI,sans-serif}
+input[type=number]{-moz-appearance:textfield}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>*{flex:1 1 90px;min-width:80px}
+.chk{display:flex;align-items:center;gap:6px;color:var(--text);font-size:13px;margin:4px 0;flex:1 1 150px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.chk input{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:6px}
+fieldset{border:1px solid var(--line);border-radius:2px;padding:8px 12px 10px;margin:10px 0 0}
+legend{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:0 6px}
+.house-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
+.house-row>*{flex:1 1 90px;min-width:70px}
+.house-row .prim{flex:0 0 auto;min-width:0}
+.house-row .prim .chk{margin:0 0 4px;white-space:nowrap;flex:0 0 auto}
+.add-house{flex:0 0 36px;width:36px;height:36px;padding:0;font-size:22px;line-height:1;color:var(--accent);border-color:var(--accent)}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:7px 12px;font:13px/1.3 system-ui,-apple-system,Segoe UI,sans-serif;cursor:pointer}
+button:hover{border-color:var(--accent);color:var(--parchment)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}
+button.primary:hover{filter:brightness(1.08);color:var(--ink)}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btns.secondary{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.btns.secondary .label{color:var(--faint);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
+.status{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fleetstat{background:var(--panel2);border-radius:2px;padding:12px;border:1px solid var(--line)}
+.fleetstat h3{margin:0 0 8px;font-size:16px;color:var(--parchment);font-weight:600}
+.fleetstat .big{font-size:26px;font-weight:600;font-family:Georgia,serif}
+.fleetstat .meta{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.fleetstat .houses{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+.fleetstat .houses div{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;padding:2px 0;line-height:1.4}
+.bar{height:8px;background:#2a2418;border-radius:1px;overflow:hidden;margin:6px 0}
+.bar>i{display:block;height:100%}
+.A .bar>i{background:var(--a)} .B .bar>i{background:var(--b)}
+table{width:100%;border-collapse:collapse;font-size:13px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+th,td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500;font-size:12px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.log{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;max-height:560px;overflow:auto;padding:10px 14px;background:#0a0907;border-radius:0;border-top:1px solid var(--line)}
+.log .r{color:var(--accent);font-weight:600;margin-top:10px}
+.log .e{margin:2px 0;white-space:pre-wrap}
+.log .e.A{border-left:2px solid var(--a);padding-left:8px}
+.log .e.B{border-left:2px solid var(--b);padding-left:8px}
+.log .e.sys{color:var(--muted)}
+.log .e.hi{color:var(--warn)}
+.log .e.end{color:var(--ok);font-weight:600}
+.arch-item{border:1px solid var(--line);margin:0 0 10px;background:var(--panel2)}
+.arch-item summary{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 12px;cursor:pointer;list-style:none;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+.arch-item summary::-webkit-details-marker{display:none}
+.arch-item .when{color:var(--faint);font-size:12px;min-width:11em}
+.arch-item .vs{color:var(--parchment)}
+.arch-item .out{color:var(--ok)}
+.arch-item .meta{color:var(--muted);font-size:12px}
+.arch-item .arch-actions{margin-left:auto;display:flex;gap:6px}
+.arch-item .log{max-height:420px}
+details{margin:2px 0 2px 12px;color:var(--faint)}
+summary{cursor:pointer}
+.phase{display:inline-block;padding:2px 8px;border-radius:2px;background:var(--panel2);color:var(--muted);font-size:12px;margin-left:8px;letter-spacing:.06em;text-transform:uppercase}
+.muted{color:var(--muted)} .faint{color:var(--faint);font-size:12px}
+.kpi{display:flex;gap:28px;flex-wrap:wrap;margin:8px 0 14px}
+.kpi div b{display:block;font-size:24px;font-weight:600;color:var(--parchment)}
+.kpi div span{color:var(--muted);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.hist{display:flex;align-items:flex-end;gap:3px;height:80px;margin-top:6px}
+.hist i{display:block;flex:1;background:#3d3426;border-radius:2px 2px 0 0;position:relative}
+.hist i::after{content:attr(data-l);position:absolute;top:100%;left:0;right:0;text-align:center;font-size:10px;color:var(--faint);font-style:normal}
+.note{background:var(--panel2);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0;color:var(--muted);font-size:13px}
+.hidden{display:none !important}
+
 </style>
 </head>
 <body>
@@ -154,7 +155,6 @@
     <button class="tab" data-tab="rules">Rules</button>
   </div>
 
-  <!-- ───────────────── SETUP ───────────────── -->
   <section id="tab-setup">
     <div class="grid cols-2" id="fleetForms"></div>
     <div class="card" style="margin-top:16px">
@@ -167,7 +167,6 @@
     </div>
   </section>
 
-  <!-- ───────────────── BATTLE ───────────────── -->
   <section id="tab-battle" class="hidden">
     <div class="grid cols-21">
       <div>
@@ -206,7 +205,6 @@
     </div>
   </section>
 
-  <!-- ───────────────── MONTE CARLO ───────────────── -->
   <section id="tab-mc" class="hidden">
     <div class="card">
       <h2>Monte Carlo — same fleets, many battles</h2>
@@ -222,7 +220,6 @@
     </div>
   </section>
 
-  <!-- ───────────────── LOG ───────────────── -->
   <section id="tab-log" class="hidden">
     <div class="card">
       <h2>Battle log <span class="btns"><button class="danger" id="btnClearArchive">Delete all</button></span></h2>
@@ -233,7 +230,6 @@
     </div>
   </section>
 
-  <!-- ───────────────── RULES ───────────────── -->
   <section id="tab-rules" class="hidden">
     <div class="grid cols-2">
       <div class="card">
@@ -324,7 +320,6 @@ function rulesToForm(){
   }
   updateRulesetUI();
 }
-/** Header switcher + one-line summary of the active ruleset, shown on every tab. */
 function updateRulesetUI(){
   const active = rules.label === 'Proposed v3' ? 'v3' : rules.label === 'Current rules' ? 'current' : rules.label === 'j1' ? 'j1' : null;
   document.querySelectorAll('.seg').forEach(b => { b.classList.toggle('active', b.dataset.preset === active); b.classList.toggle('cur', b.dataset.preset === 'current'); });
@@ -340,7 +335,6 @@ function updateRulesetUI(){
   if (labA) labA.textContent = simMode() ? 'Fleet A d20 — damage mod' : 'Fleet A d20 — player roll';
   if (labB) labB.textContent = simMode() ? 'Fleet B d20 — damage mod' : 'Fleet B d20 — player roll';
 }
-/** Switch the whole app to a preset. Any battle in progress is restarted under the new rules so HP and dice stay consistent. */
 function applyPreset(key){
   rules = JSON.parse(JSON.stringify(PRESETS[key]));
   document.getElementById('killOrder').value = key === 'v3' ? 'escorts' : 'split';
@@ -374,6 +368,44 @@ function syncHouseTotals(s){
     s.ga = sum(s.houses.map(h => Number(h.ga) || 0));
   }
 }
+
+/** When contributing houses exist, fleet Longships/Galleys totals stay editable.
+ *  Changing a total adjusts the first house by the delta when possible; otherwise
+ *  ship counts are scaled across houses so the sum matches. */
+function setFleetShipTotal(side, key, newVal){
+  const s = specs[side];
+  newVal = Math.max(0, Math.floor(Number(newVal) || 0));
+  const houses = s.houses || [];
+  if (!houses.length){
+    s[key] = newVal;
+    return;
+  }
+  const oldTotal = sum(houses.map(h => Number(h[key]) || 0));
+  if (oldTotal <= 0){
+    houses[0][key] = newVal;
+    for (let i = 1; i < houses.length; i++) houses[i][key] = 0;
+  } else {
+    const delta = newVal - oldTotal;
+    const first = Number(houses[0][key]) || 0;
+    if (first + delta >= 0){
+      houses[0][key] = first + delta;
+    } else {
+      let assigned = 0;
+      for (let i = 0; i < houses.length; i++){
+        if (i === houses.length - 1) houses[i][key] = Math.max(0, newVal - assigned);
+        else {
+          const share = Math.floor(newVal * (Number(houses[i][key]) || 0) / oldTotal);
+          houses[i][key] = share;
+          assigned += share;
+        }
+      }
+      const fix = newVal - sum(houses.map(h => Number(h[key]) || 0));
+      if (fix) houses[0][key] = Math.max(0, (Number(houses[0][key]) || 0) + fix);
+    }
+  }
+  syncHouseTotals(s);
+}
+
 function addHouse(side){
   const s = specs[side];
   s.houses = s.houses || [];
@@ -413,8 +445,8 @@ function fleetForm(side){
   return `<div class="card ${side}"><h2>Fleet ${side}</h2><div class="body">
     <div class="row">
       <div style="flex:2 1 160px"><label>Fleet name</label><input type="text" data-s="${side}" data-k="name" value="${esc(s.name)}"></div>
-      <div><label>Longships${locked ? ' (sum)' : ''}</label><input type="number" min="0" data-s="${side}" data-k="ls" value="${s.ls}" ${locked ? 'readonly' : ''}></div>
-      <div><label>Galleys${locked ? ' (sum)' : ''}</label><input type="number" min="0" data-s="${side}" data-k="ga" value="${s.ga}" ${locked ? 'readonly' : ''}></div>
+      <div><label>Longships${locked ? ' (fleet total)' : ''}</label><input type="number" min="0" data-s="${side}" data-k="ls" value="${s.ls}"></div>
+      <div><label>Galleys${locked ? ' (fleet total)' : ''}</label><input type="number" min="0" data-s="${side}" data-k="ga" value="${s.ga}"></div>
       <div><label>Primary dromond</label><select data-s="${side}" data-k="drom">${dromOpts}</select></div>
     </div>
     <div class="chips"><label class="chk"><input type="checkbox" data-s="${side}" data-k="culture" ${s.culture ? 'checked' : ''}> Shieldman / Hewett HP bonus (+${rules.culture} per warship)</label></div>
@@ -437,7 +469,7 @@ function fleetForm(side){
       <div class="row" style="margin-top:6px"><div style="flex:0 1 260px"><label>Scorpion hit chance per turn (%) — set by staff</label><input type="number" min="0" max="100" data-s="${side}" data-k="scorpionPct" value="${s.scorpionPct}"></div></div>
     </fieldset>
     <fieldset><legend>Contributing houses</legend>
-      <p class="faint" style="margin:0 0 8px">Optional. Add houses when more than one banner sails in this fleet. Longship and galley totals above become the sum of the rows. Tick <b>Primary</b> on the house that sails the flagship — only one house per fleet; untick to leave it unassigned. You do not need to put that flagship on the house's Dromonds count. Extra dromonds on the rows still fight and die before the flagship. Losses of longships and galleys are split by contribution; a dromond wreck is billed to the house that brought it.</p>
+      <p class="faint" style="margin:0 0 8px">Optional. Add houses when more than one banner sails in this fleet. Edit Longships and Galleys on each house row, or change the fleet totals above — the difference is applied to the first house when possible. Tick <b>Primary</b> on the house that sails the flagship — only one house per fleet; untick to leave it unassigned. You do not need to put that flagship on the house's Dromonds count. Extra dromonds on the rows still fight and die before the flagship. Losses of longships and galleys are split by contribution; a dromond wreck is billed to the house that brought it.</p>
       ${houseRows}
       <div class="row" style="align-items:center;margin-top:4px">
         <button type="button" class="add-house" data-add-house="${side}" title="Add house">+</button>
@@ -451,6 +483,16 @@ function renderForms(){
   document.getElementById('fleetForms').innerHTML = fleetForm('A') + fleetForm('B');
   document.querySelectorAll('#fleetForms [data-k]').forEach(el => el.addEventListener('input', e => {
     const { s, k } = e.target.dataset;
+    if ((k === 'ls' || k === 'ga') && (specs[s].houses || []).length){
+      setFleetShipTotal(s, k, e.target.value);
+      document.querySelectorAll(`#fleetForms [data-s="${s}"][data-hk="${k}"]`).forEach(inp => {
+        const i = Number(inp.dataset.hi);
+        inp.value = specs[s].houses[i][k];
+      });
+      e.target.value = specs[s][k];
+      save();
+      return;
+    }
     specs[s][k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'number' ? Number(e.target.value) : e.target.value;
     if (k === 'sailor') specs[s][k] = Number(e.target.value);
     if (k === 'drom') renderForms();
@@ -475,6 +517,7 @@ function renderForms(){
     renderForms(); save();
   }));
 }
+
 
 /* ───────────────────────────── FLEET MODEL ───────────────────────────── */
 function makeDrom(type, house){
@@ -554,7 +597,6 @@ const desc = f => {
   return parts.join(', ') || 'nothing';
 };
 
-/** Roll damage for `att` against `def`, honouring the engagement cap. Returns {total, detail, used, limit}. */
 function rollAttack(att, def, unlimited){
   let limit = Infinity;
   if (!unlimited && rules.capMode === 'hulls') limit = r1(Math.max(rules.capFloor, rules.capRatio * def.ships.length));
@@ -576,7 +618,6 @@ function rollAttack(att, def, unlimited){
   const held = att.ships.length - sum(Object.values(byType).map(x => x.ships));
   return { total, byType, dragon, dragonRolls, held, limit };
 }
-/** Eat damage from ships matching `pred`. Returns leftover damage. */
 function eatDamage(def, pred, dmg, destroyed){
   let i = 0;
   while (dmg > 0 && i < def.ships.length){
@@ -587,11 +628,6 @@ function eatDamage(def, pred, dmg, destroyed){
   }
   return dmg;
 }
-/**
- * v3 (`escorts`): sequential LS → GA → extra dromonds → primary dromond.
- * Current/table (`split`): if both escort types remain, half the hit to each
- * (odd point to galleys); leftover overflows to remaining escorts, then extra dromonds, then the primary.
- */
 function applyDamage(def, dmg){
   const destroyed = [];
   if (killOrder() === 'split'){
@@ -625,7 +661,6 @@ function tallyDestroyed(sunk){
   sunk.forEach(sh => { const k = shipLabel(sh); tally[k] = (tally[k] || 0) + 1; });
   return Object.entries(tally).map(([k, v]) => `${v} ${k}${v > 1 && !k.endsWith('dromond') ? 's' : ''}`).join(', ') + ' destroyed';
 }
-/** Ceil each house's share of this volley's wrecks, then trim so the count matches ships actually destroyed. Capped at remaining hulls of that type; leftover spills to houses that still have them. */
 function allocateByShare(contrib, remaining, dead){
   const n = contrib.length;
   const takes = Array(n).fill(0);
@@ -751,7 +786,6 @@ function formatPrizes(f){
   f.prizes.forEach(sh => { const k = shipLabel(sh); tally[k] = (tally[k] || 0) + 1; });
   return Object.entries(tally).map(([k, v]) => `${v} ${k}${v > 1 && !k.endsWith('dromond') ? 's' : ''}`).join(', ');
 }
-/** 1d10 per defeated ship, pooled by type. Each die ≥ need (10, or 9 with Boarding Ramps) captures that hull. */
 function tryCapture(att, victim){
   const sunk = victim.lost;
   const need = captureNeed(att);
@@ -783,6 +817,7 @@ function tryCapture(att, victim){
   }
   return { taken, wrecked, lines, need };
 }
+
 
 /* ───────────────────────────── BATTLE ENGINE ───────────────────────────── */
 class Battle {
@@ -887,7 +922,6 @@ class Battle {
     return { total, text };
   }
 
-  /** Side k attempts to flee. The other side then pursues or lets them go. */
   flee(k){
     if (this.over || this.phase !== 'flee') return;
     const F = this.f(k);
@@ -994,7 +1028,6 @@ class Battle {
     this.resolveVolley(att, def, this.buildVolley(att, def, brace, null), true);
   }
 
-  /** Capture is rolled once, at the end: the side that holds the field rolls 1d10 per enemy hull already defeated. The fleeing/destroyed side does not capture. */
   resolveEndCaptures(winner, how){
     let captor, victim;
     if (how === 'escaped'){ victim = this.f(winner); captor = this.f(this.other(winner)); }
@@ -1048,6 +1081,7 @@ class Battle {
     if (!this.over) this.end(null, 'stalemate', 'Battle did not resolve in 500 rounds.');
   }
 }
+
 
 /* ───────────────────────────── UI: BATTLE ───────────────────────────── */
 let battle = null;
@@ -1269,6 +1303,7 @@ document.getElementById('btnClearArchive').addEventListener('click', () => {
 });
 
 load(); loadArchive(); rulesToForm(); renderForms(); renderArchive();
+
 </script>
 </body>
 </html>
