@@ -134,13 +134,13 @@
   </div>
   <div class="titles">
     <h1>Westeros Rewritten Naval Battle Sim</h1>
-    <span class="sub">Quick-battle rules (§X) · somewhere in the Narrow Sea</span>
+    <span class="sub">Current (ex-j3) · V1 · Old table · somewhere in the Narrow Sea</span>
   </div>
   <div class="switch" title="Which ruleset every battle and Monte Carlo run uses">
     <span class="sub">Ruleset:</span>
     <button class="seg" data-preset="current">Current rules</button>
-    <button class="seg" data-preset="v3">Proposed v3</button>
-    <button class="seg" data-preset="j3">j3</button>
+    <button class="seg" data-preset="v1">V1</button>
+    <button class="seg" data-preset="old">Old rules</button>
     <span class="sub" id="rulesetLabel"></span>
   </div>
 </header>
@@ -161,7 +161,6 @@
       <h2>Battle options</h2>
       <div class="body row">
         <div style="flex:2 1 220px"><label>Seed (optional — same text replays the same dice; leave empty for fresh rolls)</label><input type="text" id="seed" placeholder="e.g. ticket number, or leave empty"></div>
-        <div><label>Kill order</label><select id="killOrder"><option value="escorts">v3: longships, then galleys, then dromond</option><option value="split">Current (table): split LS / GA, dromond last</option></select></div>
         <div style="flex:0 0 auto"><button class="primary" id="goBattle">Start battle →</button></div>
       </div>
     </div>
@@ -237,15 +236,15 @@
   <section id="tab-rules" class="hidden">
     <div class="grid cols-2">
       <div class="card">
-        <h2>Core combat rules <span class="btns"><button id="presetV3">Load v3</button><button id="presetCur">Load current</button><button id="presetJ3">Load j3</button></span></h2>
+        <h2>Core combat rules <span class="btns"><button id="presetCur">Load current</button><button id="presetV1">Load V1</button><button id="presetOld">Load old</button></span></h2>
         <div class="body">
           <div class="row">
             <div><label>Base HP multiplier (LS 8 · GA 16 · dromonds)</label><input type="number" id="r_hpMult" step="0.5" min="0.5"></div>
             <div><label>Galley dice: count</label><input type="number" id="r_galN" min="1"></div>
             <div><label>Galley dice: sides</label><input type="number" id="r_galS" min="2"></div>
             <div><label>Captain divisor (Mar+Stew ÷ n)</label><input type="number" id="r_div" min="1"></div>
-            <div><label>Captain subtract after ÷ (j3 uses 6)</label><input type="number" id="r_capModSub" step="1"></div>
-            <div><label>Trait scale (j3 uses 2)</label><input type="number" id="r_traitScale" min="1" step="0.5"></div>
+            <div><label>Captain subtract after ÷ (Current / V1 use 6)</label><input type="number" id="r_capModSub" step="1"></div>
+            <div><label>Trait scale (Current / V1 use 2)</label><input type="number" id="r_traitScale" min="1" step="0.5"></div>
           </div>
           <div class="row" style="margin-top:10px">
             <div><label>Engagement cap</label><select id="r_capMode"><option value="weight">By hull weight (LS 1 · GA 2 · dromond HP÷8)</option><option value="hulls">By hull count</option><option value="none">None — every ship rolls</option></select></div>
@@ -256,7 +255,7 @@
             <div><label>Boarding Ramps: capture on (instead)</label><input type="number" id="r_rampsOn" min="1" max="10"></div>
           </div>
           <div class="chips" style="margin-top:10px">
-            <label class="chk"><input type="checkbox" id="r_brace"> Round-1 brace: initiative loser subtracts ½ its damage roll from the first hit (current rules)</label>
+            <label class="chk"><input type="checkbox" id="r_brace"> Round-1 brace: initiative loser subtracts ½ its damage roll from the first hit (old rules)</label>
           </div>
           <p class="faint">Flat bonuses (Ibben +2/+3, culture) are never multiplied. Longships always roll 1d6. Dragons roll 12d8.</p>
         </div>
@@ -269,7 +268,7 @@
       </div>
     </div>
     <div class="note" style="margin-top:16px">
-      Fixed rules from the document: initiative = d20 + (Martial + Stewardship) ÷ divisor + traits (Sailor +1/level, Reckless ±d4, Organizer +1, Seastone Chair +2, Bloodvyne +1, Riptide +1, Myrish Eye +2). Flee / pursuit = contested d20 + (Martial + Intrigue) ÷ 6; pursuer adds Crow's Nest +3 and +2 if its fleet is only longships / Swan / Iron; the fleeing side adds Ironwood Oars +3; Swan Ship adds +3 both ways. Difference &gt; 5: caught (battle continues next round); −1 to 5: one attack then escape; otherwise escape. Each side may attempt to flee once per battle, after a round's damage — the table asks surrender / flee / keep fighting once remaining hulls are posted. Capture is rolled once at the end of the battle (flee, annihilation, or after a failed/partial pursuit): 1d10 per defeated hull, pooled by type. Ships that escape are not rolled. The fleeing or destroyed side does not capture. If the enemy declines to pursue, remaining ships escape and then the standing side rolls capture on wrecks. Swan Ship: 10% to dodge an entire enemy turn. Damage is pooled. v3 kill order: longships, then galleys, then the dromond. Current / table (naval admin): the dromond is always last; if both longships and galleys remain, half the damage is assigned to each (odd point to galleys); leftover from a type that is wiped overflows to remaining escorts, then the dromond. Each defeated hull is captured with 1d10 per ship (pool by type, the way Dice Maiden is used at the table): a natural 10 is a prize; Boarding Ramps also captures on a 9. Captured ships do not fight for the capturer this battle. Dragons cannot be captured. j1 (based on Current): no initiative and no round-1 brace. Each round both fleets roll d20 + the same captain extras as initiative, now called damage mod. That total maps to a percent of the ship-dice result (1→5%, 20→100%, 30+→150%). Both volleys use the hulls present at the start of the round and land at the same time. j3 (WIP, based on j1): same simultaneous accuracy table, no engagement cap, no brace. Captain formula is (Mar+Stew)÷3 − 6, and combat traits are doubled, so a few middling stats are no longer a “solid” admiral. Ship HP matches Current (×1), so even fleets usually run 5–8 rounds. A much better admiral can still trade evenly with a larger fleet because damage scales with the accuracy total.
+      Fixed rules from the document: flee / pursuit = contested d20 + (Martial + Intrigue) ÷ 6; pursuer adds Crow's Nest +3 and +2 if its fleet is only longships / Swan / Iron; the fleeing side adds Ironwood Oars +3; Swan Ship adds +3 both ways. Difference &gt; 5: caught (battle continues next round); −1 to 5: one attack then escape; otherwise escape. Each side may attempt to flee once per battle, after a round's damage. Capture is rolled once at the end of the battle: 1d10 per defeated hull, pooled by type. Ships that escape are not rolled. The fleeing or destroyed side does not capture. Swan Ship: 10% to dodge an entire enemy turn. Damage is pooled. Kill order is always split: the dromond is last; if both longships and galleys remain, half the damage is assigned to each (odd point to galleys); leftover overflows to remaining escorts, then the dromond. Capture: a natural 10 is a prize; Boarding Ramps also captures on 9. Dragons cannot be captured. <b>Current</b> (ex-j3): simultaneous accuracy, no engagement cap, no brace. Captain is (Mar+Stew)÷3 − 6, combat traits doubled. Galleys 1d10, culture +5, Swan 1d6. <b>V1</b> (S8): same accuracy and captain math, galleys 2d6, culture +2, Swan 2d6, Master of Ships / Lord Admiral a flat +2 (not doubled). <b>Old</b> (former table): sequential initiative, round-1 brace, captain (Mar+Stew)÷6, galleys 1d10, culture +5.
     </div>
   </section>
 </main>
@@ -295,15 +294,13 @@ const gaHp = spec => r1(16 * rules.hpMult + extraGA(spec));
 const dromHp = kind => r1(rules.drom[kind][0] * rules.hpMult);
 
 /* ───────────────────────────── RULES ───────────────────────────── */
-const DROM_PERK = { Andal: '—', Iron: 'Pursuit bonus eligible', Swan: '10% dodge · +3 flee/pursue · pursuit eligible', Essosi: '— (trade)', Ibben: '+2 HP longships · +3 HP galleys (flat)', 'Far Eastern': '—' };
+const DROM_PERK = { Andal: '—', Iron: 'Pursuit bonus eligible', Swan: '10% dodge · +3 flee/pursue · pursuit eligible', Essosi: '+4 NC / session if primary (economy, not combat)', Ibben: '+2 HP longships · +3 HP galleys (flat)', 'Far Eastern': '—' };
 const PRESETS = {
-  v3: { label: 'Proposed v3', hpMult: 1.5, galN: 2, galS: 6, div: 6, capModSub: 0, traitScale: 1, capMode: 'weight', capRatio: 1.5, capFloor: 20, culture: 2, brace: false, dmgMod: false, captureOn: 10, rampsOn: 9,
-    drom: { Andal: [45, 2, 10, 6], Iron: [30, 3, 6, 4], Swan: [30, 2, 6, 4], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
-  current: { label: 'Current rules', hpMult: 1, galN: 1, galS: 10, div: 6, capModSub: 0, traitScale: 1, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: true, dmgMod: false, captureOn: 10, rampsOn: 9,
+  current: { label: 'Current rules', hpMult: 1, galN: 1, galS: 10, div: 3, capModSub: 6, traitScale: 2, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: false, dmgMod: true, captureOn: 10, rampsOn: 9,
     drom: { Andal: [40, 2, 10, 5], Iron: [30, 3, 6, 4], Swan: [20, 1, 6, 3], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
-  j1: { label: 'j1', hpMult: 1, galN: 1, galS: 10, div: 6, capModSub: 0, traitScale: 1, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: false, dmgMod: true, captureOn: 10, rampsOn: 9,
-    drom: { Andal: [40, 2, 10, 5], Iron: [30, 3, 6, 4], Swan: [20, 1, 6, 3], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
-  j3: { label: 'j3', hpMult: 1, galN: 1, galS: 10, div: 3, capModSub: 6, traitScale: 2, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: false, dmgMod: true, captureOn: 10, rampsOn: 9,
+  v1: { label: 'V1', hpMult: 1, galN: 2, galS: 6, div: 3, capModSub: 6, traitScale: 2, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 2, brace: false, dmgMod: true, captureOn: 10, rampsOn: 9,
+    drom: { Andal: [40, 2, 10, 5], Iron: [30, 3, 6, 4], Swan: [20, 2, 6, 3], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
+  old: { label: 'Old rules', hpMult: 1, galN: 1, galS: 10, div: 6, capModSub: 0, traitScale: 1, capMode: 'none', capRatio: 1.5, capFloor: 0, culture: 5, brace: true, dmgMod: false, captureOn: 10, rampsOn: 9,
     drom: { Andal: [40, 2, 10, 5], Iron: [30, 3, 6, 4], Swan: [20, 1, 6, 3], Essosi: [45, 2, 10, 6], Ibben: [70, 3, 10, 9], 'Far Eastern': [100, 4, 10, 13] } },
 };
 const simMode = () => !!rules.dmgMod;
@@ -325,9 +322,10 @@ function captainBonus(spec, hasPrimaryDrom){
   if (spec.bloodvyne) b += ts;
   if (spec.riptide) b += ts;
   if (spec.myrish && hasPrimaryDrom) b += 2 * ts;
+  if (spec.mos) b += 2;
   return r1(b);
 }
-let rules = JSON.parse(JSON.stringify(PRESETS.v3));
+let rules = JSON.parse(JSON.stringify(PRESETS.current));
 
 function rulesToForm(){
   for (const k of ['hpMult','galN','galS','div','capModSub','traitScale','capRatio','capFloor','culture','captureOn','rampsOn']) document.getElementById('r_'+k).value = rules[k] == null ? (k === 'traitScale' ? 1 : 0) : rules[k];
@@ -343,30 +341,32 @@ function rulesToForm(){
 }
 /** Header switcher + one-line summary of the active ruleset, shown on every tab. */
 function updateRulesetUI(){
-  const active = rules.label === 'Proposed v3' ? 'v3' : rules.label === 'Current rules' ? 'current' : rules.label === 'j1' ? 'j1' : rules.label === 'j3' ? 'j3' : null;
-  document.querySelectorAll('.seg').forEach(b => { b.classList.toggle('active', b.dataset.preset === active); b.classList.toggle('cur', b.dataset.preset === 'current'); });
+  const active = rules.label === 'Current rules' ? 'current' : rules.label === 'V1' ? 'v1' : rules.label === 'Old rules' ? 'old' : null;
+  document.querySelectorAll('.seg').forEach(b => { b.classList.toggle('active', b.dataset.preset === active); b.classList.toggle('cur', b.dataset.preset === 'old'); });
   document.getElementById('rulesetLabel').textContent = active ? '' : '(custom — edited on the Rules tab)';
   const capTxt = rules.capMode === 'none' ? 'no engagement cap — every ship rolls' : `engagement cap ${rules.capRatio}× enemy ${rules.capMode === 'weight' ? 'hull weight' : 'hull count'} (min ${rules.capFloor})`;
-  const ko = document.getElementById('killOrder')?.value;
-  const koTxt = ko === 'split' ? 'kill order split LS/GA, dromond last' : 'kill order LS → GA → dromond';
   const d = rules.drom;
   const initTxt = simMode() ? `simultaneous accuracy · d20+(Mar+Stew)÷${rules.div}${capModSub() ? '−' + capModSub() : ''} + traits×${traitScale()} → 5% per point (30+ = 150%) · no brace` : `round-1 brace ${rules.brace ? 'on' : 'off'} &nbsp;|&nbsp; captain (Mar+Stew)÷${rules.div} (ceil)`;
   document.getElementById('rulesBar').innerHTML =
-    `<b>${rules.label}:</b> longship ${r1(8 * rules.hpMult)} HP · 1d6 &nbsp;|&nbsp; galley ${r1(16 * rules.hpMult)} HP · ${rules.galN}d${rules.galS} &nbsp;|&nbsp; ${capTxt} &nbsp;|&nbsp; ${koTxt} &nbsp;|&nbsp; ${initTxt} &nbsp;|&nbsp; Shieldman/Hewett +${rules.culture} HP &nbsp;|&nbsp; capture 1d10≥${rules.captureOn} (Boarding Ramps ≥${rules.rampsOn}) &nbsp;|&nbsp; Andal dromond ${r1(d.Andal[0] * rules.hpMult)} HP · ${d.Andal[1]}d${d.Andal[2]} &nbsp;|&nbsp; Swan ${r1(d.Swan[0] * rules.hpMult)} HP · ${d.Swan[1]}d${d.Swan[2]}`;
+    `<b>${rules.label}:</b> longship ${r1(8 * rules.hpMult)} HP · 1d6 &nbsp;|&nbsp; galley ${r1(16 * rules.hpMult)} HP · ${rules.galN}d${rules.galS} &nbsp;|&nbsp; ${capTxt} &nbsp;|&nbsp; kill order split LS/GA, dromond last &nbsp;|&nbsp; ${initTxt} &nbsp;|&nbsp; Shieldman/Hewett +${rules.culture} HP &nbsp;|&nbsp; capture 1d10≥${rules.captureOn} (Boarding Ramps ≥${rules.rampsOn}) &nbsp;|&nbsp; Andal dromond ${r1(d.Andal[0] * rules.hpMult)} HP · ${d.Andal[1]}d${d.Andal[2]} &nbsp;|&nbsp; Swan ${r1(d.Swan[0] * rules.hpMult)} HP · ${d.Swan[1]}d${d.Swan[2]}`;
   const labA = document.getElementById('labInitA'), labB = document.getElementById('labInitB');
   if (labA) labA.textContent = simMode() ? 'Fleet A d20 — damage mod' : 'Fleet A d20 — player roll';
   if (labB) labB.textContent = simMode() ? 'Fleet B d20 — damage mod' : 'Fleet B d20 — player roll';
 }
 /** Switch the whole app to a preset. Any battle in progress is restarted under the new rules so HP and dice stay consistent. */
 function applyPreset(key){
+  if (!PRESETS[key]) return;
   rules = JSON.parse(JSON.stringify(PRESETS[key]));
-  document.getElementById('killOrder').value = key === 'v3' ? 'escorts' : 'split';
   rulesToForm(); renderForms(); save();
   if (battle){
     const tab = document.querySelector('.tab.active').dataset.tab;
     startBattle(); battle.add('hi', `Ruleset switched to ${rules.label} — battle restarted from the setup fleets.`); render();
     showTab(tab);
   }
+}
+function rematchRulesLabel(){
+  const matches = p => ['hpMult','galN','galS','div','capModSub','traitScale','capMode','capRatio','capFloor','culture','brace','captureOn','rampsOn'].every(k => Number(rules[k]) === Number(p[k]) || rules[k] === p[k]) && !!rules.dmgMod === !!p.dmgMod && JSON.stringify(rules.drom) === JSON.stringify(p.drom);
+  rules.label = matches(PRESETS.current) ? 'Current rules' : matches(PRESETS.v1) ? 'V1' : matches(PRESETS.old) ? 'Old rules' : 'Custom';
 }
 function formToRules(){
   for (const k of ['hpMult','galN','galS','div','capModSub','traitScale','capRatio','capFloor','culture','captureOn','rampsOn']) rules[k] = Number(document.getElementById('r_'+k).value);
@@ -375,14 +375,13 @@ function formToRules(){
   document.querySelectorAll('#dromTable input').forEach(inp => { rules.drom[inp.dataset.drom][Number(inp.dataset.i)] = Number(inp.value); });
   for (const name of Object.keys(rules.drom)) rules.drom[name][3] = r1(rules.drom[name][0] / 8);
   if (rules.dmgMod == null) rules.dmgMod = false;
-  const matches = p => ['hpMult','galN','galS','div','capModSub','traitScale','capMode','capRatio','capFloor','culture','brace','captureOn','rampsOn'].every(k => Number(rules[k]) === Number(p[k]) || rules[k] === p[k]) && !!rules.dmgMod === !!p.dmgMod && JSON.stringify(rules.drom) === JSON.stringify(p.drom);
-  rules.label = matches(PRESETS.v3) ? 'Proposed v3' : matches(PRESETS.current) ? 'Current rules' : matches(PRESETS.j1) ? 'j1' : matches(PRESETS.j3) ? 'j3' : 'Custom';
+  rematchRulesLabel();
   updateRulesetUI();
   save();
 }
 
 /* ───────────────────────────── FLEET SPECS ───────────────────────────── */
-const defaultSpec = (name, ls, ga, drom) => ({ name, ls, ga, drom, culture: false, mar: 12, stew: 12, intr: 8, sailor: 0, reckless: false, organizer: false, seastone: false, bloodvyne: false, riptide: false, myrish: false, crow: false, ironwood: false, boarding: false, dragon: false, scorpion: false, scorpionPct: 0, houses: [], dromHouse: '' });
+const defaultSpec = (name, ls, ga, drom) => ({ name, ls, ga, drom, culture: false, mar: 12, stew: 12, intr: 8, sailor: 0, reckless: false, organizer: false, seastone: false, bloodvyne: false, riptide: false, mos: false, myrish: false, crow: false, ironwood: false, boarding: false, dragon: false, scorpion: false, scorpionPct: 0, houses: [], dromHouse: '' });
 let specs = { A: defaultSpec('Fleet A', 0, 30, 'Andal'), B: defaultSpec('Fleet B', 20, 20, 'Iron') };
 
 function syncHouseTotals(s){
@@ -443,7 +442,7 @@ function fleetForm(side){
         <div><label>Sailor trait level</label><select data-s="${side}" data-k="sailor">${[0,1,2,3].map(v => `<option value="${v}" ${s.sailor == v ? 'selected' : ''}>${v === 0 ? 'none' : 'level ' + v + ' (+' + (v * traitScale()) + ')'}</option>`).join('')}</select></div>
       </div>
       <div class="chips">
-        ${chk(side,'reckless',`Reckless (±d4 on ${capModName()})`,s)}${chk(side,'organizer',`Organizer (+${traitScale()})`,s)}${chk(side,'seastone',`Seastone Chair (+${2 * traitScale()})`,s)}${chk(side,'bloodvyne',`Bloodvyne (+${traitScale()})`,s)}${chk(side,'riptide',`Riptide (+${traitScale()})`,s)}
+        ${chk(side,'reckless',`Reckless (±d4 on ${capModName()})`,s)}${chk(side,'organizer',`Organizer (+${traitScale()})`,s)}${chk(side,'seastone',`Seastone Chair (+${2 * traitScale()})`,s)}${chk(side,'bloodvyne',`Bloodvyne (+${traitScale()})`,s)}${chk(side,'riptide',`Riptide (+${traitScale()})`,s)}${chk(side,'mos','Master of Ships / Lord Admiral (+2)',s)}
       </div>
     </fieldset>
     <fieldset><legend>Dromond upgrades &amp; extras</legend>
@@ -541,7 +540,6 @@ function buildFleet(spec, side){
   f.fleeBonus = r1((spec.mar + spec.intr) / 6);
   return f;
 }
-const killOrder = () => document.getElementById('killOrder').value;
 const alive = f => f.ships.length > 0 || f.dragon;
 const count = (f, t) => f.ships.filter(x => x.t === t).length;
 const weight = f => sum(f.ships.map(x => x.w));
@@ -605,29 +603,21 @@ function eatDamage(def, pred, dmg, destroyed){
   return dmg;
 }
 /**
- * v3 (`escorts`): sequential LS → GA → extra dromonds → primary dromond.
- * Current/table (`split`): if both escort types remain, half the hit to each
+ * Split kill order: if both escort types remain, half the hit to each
  * (odd point to galleys); leftover overflows to remaining escorts, then extra dromonds, then the primary.
  */
 function applyDamage(def, dmg){
   const destroyed = [];
-  if (killOrder() === 'split'){
-    const hasLS = def.ships.some(s => s.t === 'LS');
-    const hasGA = def.ships.some(s => s.t === 'GA');
-    if (hasLS && hasGA){
-      const toLS = Math.floor(dmg / 2);
-      const toGA = dmg - toLS;
-      dmg = eatDamage(def, s => s.t === 'LS', toLS, destroyed) + eatDamage(def, s => s.t === 'GA', toGA, destroyed);
-    }
-    dmg = eatDamage(def, s => !s.isDrom, dmg, destroyed);
-    dmg = eatDamage(def, s => s.isDrom && !s.isPrimary, dmg, destroyed);
-    eatDamage(def, s => !!s.isPrimary, dmg, destroyed);
-  } else {
-    dmg = eatDamage(def, s => s.t === 'LS', dmg, destroyed);
-    dmg = eatDamage(def, s => s.t === 'GA', dmg, destroyed);
-    dmg = eatDamage(def, s => s.isDrom && !s.isPrimary, dmg, destroyed);
-    eatDamage(def, s => !!s.isPrimary, dmg, destroyed);
+  const hasLS = def.ships.some(s => s.t === 'LS');
+  const hasGA = def.ships.some(s => s.t === 'GA');
+  if (hasLS && hasGA){
+    const toLS = Math.floor(dmg / 2);
+    const toGA = dmg - toLS;
+    dmg = eatDamage(def, s => s.t === 'LS', toLS, destroyed) + eatDamage(def, s => s.t === 'GA', toGA, destroyed);
   }
+  dmg = eatDamage(def, s => !s.isDrom, dmg, destroyed);
+  dmg = eatDamage(def, s => s.isDrom && !s.isPrimary, dmg, destroyed);
+  eatDamage(def, s => !!s.isPrimary, dmg, destroyed);
   return destroyed;
 }
 const shipLabel = sh => sh.isDrom ? `${sh.t} dromond${sh.isPrimary ? ' (primary)' : ''}` : sh.t === 'LS' ? 'longship' : 'galley';
@@ -981,15 +971,13 @@ class Battle {
     if (r.dragon) parts.push(`dragon 12d8 = ${r.dragon}`);
     const capTxt = r.held > 0 ? ` (${r.held} ship${r.held > 1 ? 's' : ''} held back by the engagement cap)` : '';
     let splitTxt = '';
-    if (killOrder() === 'split'){
-      const hasLS = def.ships.some(s => s.t === 'LS');
-      const hasGA = def.ships.some(s => s.t === 'GA');
-      if (hasLS && hasGA){
-        const toLS = Math.floor(dmg / 2), toGA = dmg - toLS;
-        splitTxt = ` — ${toLS} to longships, ${toGA} to galleys`;
-      } else {
-        splitTxt = def.ships.filter(s => s.isDrom && !s.isPrimary).length ? ' — escorts first, extra dromonds, primary last' : ' — escorts first, dromond last';
-      }
+    const hasLS = def.ships.some(s => s.t === 'LS');
+    const hasGA = def.ships.some(s => s.t === 'GA');
+    if (hasLS && hasGA){
+      const toLS = Math.floor(dmg / 2), toGA = dmg - toLS;
+      splitTxt = ` — ${toLS} to longships, ${toGA} to galleys`;
+    } else {
+      splitTxt = def.ships.filter(s => s.isDrom && !s.isPrimary).length ? ' — escorts first, extra dromonds, primary last' : ' — escorts first, dromond last';
     }
     return { r, dmg, braceTxt, modTxt, parts, capTxt, splitTxt };
   }
@@ -1225,7 +1213,7 @@ function renderArchive(){
 }
 
 /* ───────────────────────────── PERSISTENCE & WIRING ───────────────────────────── */
-function save(){ try { localStorage.setItem('navalResolver', JSON.stringify({ specs, rules, seed: document.getElementById('seed').value, killOrder: killOrder() })); } catch (e) {} }
+function save(){ try { localStorage.setItem('navalResolver', JSON.stringify({ specs, rules, seed: document.getElementById('seed').value })); } catch (e) {} }
 function load(){
   try { const d = JSON.parse(localStorage.getItem('navalResolver')); if (d){ if (d.specs){
     const tidy = (raw, fallback) => {
@@ -1236,7 +1224,7 @@ function load(){
       return s;
     };
     specs = { A: tidy(d.specs.A, 'A'), B: tidy(d.specs.B, 'B') };
-  } if (d.rules) rules = { captureOn: 10, rampsOn: 9, dmgMod: false, capModSub: 0, traitScale: 1, ...d.rules }; if (d.seed) document.getElementById('seed').value = d.seed; if (rules.label === 'Proposed v3') document.getElementById('killOrder').value = 'escorts'; else if (rules.label === 'Current rules' || rules.label === 'j1' || rules.label === 'j3') document.getElementById('killOrder').value = 'split'; else if (d.killOrder && d.killOrder !== 'flagship') document.getElementById('killOrder').value = d.killOrder; } } catch (e) {}
+  } if (d.rules){ rules = { captureOn: 10, rampsOn: 9, dmgMod: false, capModSub: 0, traitScale: 1, ...d.rules }; rematchRulesLabel(); } if (d.seed) document.getElementById('seed').value = d.seed; } } catch (e) {}
 }
 function showTab(id){
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
@@ -1258,13 +1246,12 @@ document.getElementById('btnAutoBattle').addEventListener('click', () => { if (!
 document.getElementById('btnReset').addEventListener('click', () => { startBattle(); });
 document.getElementById('btnCopy').addEventListener('click', copyLog);
 document.getElementById('btnMC').addEventListener('click', runMC);
-document.getElementById('presetV3').addEventListener('click', () => applyPreset('v3'));
 document.getElementById('presetCur').addEventListener('click', () => applyPreset('current'));
-document.getElementById('presetJ3').addEventListener('click', () => applyPreset('j3'));
+document.getElementById('presetV1').addEventListener('click', () => applyPreset('v1'));
+document.getElementById('presetOld').addEventListener('click', () => applyPreset('old'));
 document.querySelectorAll('.seg').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
 document.getElementById('tab-rules').addEventListener('input', formToRules);
 document.getElementById('seed').addEventListener('input', save);
-document.getElementById('killOrder').addEventListener('change', () => { save(); updateRulesetUI(); });
 document.getElementById('archiveList').addEventListener('click', e => {
   const copyBtn = e.target.closest('[data-copy-archive]');
   const delBtn = e.target.closest('[data-del-archive]');
