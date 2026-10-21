@@ -1174,36 +1174,77 @@ function syncLogSlice(entries){
 }
 function formatDiscordLog(entries, label){
   const skip = /^(Surrender, flee, or keep fighting|Both sides keep fighting|Player dice must)/;
-  const out = [`**Naval battle — ${label || ''}**`];
+  const out = [`**Naval battle — ${label || ''}**`, ''];
+  let prevSide = '';
+  const blank = () => { if (out.length && out[out.length - 1] !== '') out.push(''); };
+  const sideOf = e => (e.cls === 'A' || e.cls === 'B') ? e.cls : '';
   for (const e of entries || []){
-    let t = String(e.text || '').replace(/\s+/g, ' ').trim();
-    if (!t || skip.test(t)) continue;
+    const raw = String(e.text || '').trim();
+    if (!raw) continue;
+    let t = raw.replace(/\s+/g, ' ');
+    if (skip.test(t)) continue;
+    const side = sideOf(e);
     if (e.cls === 'r'){
-      out.push('', `**${t.replace(/^—\s*|\s*—$/g, '')}**`);
+      blank();
+      out.push(`**${t.replace(/^—\s*|\s*—$/g, '')}**`, '');
+      prevSide = '';
       continue;
     }
     if (e.cls === 'end'){
-      out.push('', `**${t}**`);
+      blank();
+      out.push(`**${t}**`, '');
+      prevSide = '';
       continue;
     }
-    if (t.includes('remaining by house:')){
-      out.push('', String(e.text || '').trim());
+    if (raw.includes('remaining by house:')){
+      if (side && prevSide && side !== prevSide) blank();
+      else blank();
+      out.push(raw, '');
+      prevSide = side;
       continue;
     }
     t = t.replace(/: \[[^\]]+\] = \d+\./, '.');
     if (/^(Current rules|V1|Old rules|Custom)$/.test(t)){
-      out.push('', `*${t}*`);
+      out.push(`*${t}*`, '');
+      prevSide = '';
       continue;
     }
     if (t.startsWith('End of round')){
-      out.push('', t);
+      blank();
+      const parts = raw.split(/\s+\|\s+/);
+      const head = parts[0].match(/^(End of round \d+):\s*(.*)$/);
+      if (head){
+        out.push(head[1], '', head[2]);
+        parts.slice(1).forEach(p => out.push('', p));
+      } else {
+        out.push(parts[0]);
+        parts.slice(1).forEach(p => out.push('', p));
+      }
+      out.push('');
+      prevSide = '';
       continue;
     }
     if (t.startsWith('Capture rolls')){
-      out.push('', t);
+      blank();
+      out.push(t);
+      prevSide = '';
       continue;
     }
+    if (t.startsWith('Houses:')){
+      out.push('Houses:');
+      t.slice(7).split(';').map(s => s.trim()).filter(Boolean).forEach(s => out.push(s));
+      prevSide = side || prevSide;
+      continue;
+    }
+    if (side && prevSide && side !== prevSide) blank();
+    if ((e.cls === 'hi' || e.cls === 'sys') && prevSide) blank();
     out.push(t);
+    if (e.cls === 'hi' || e.cls === 'sys'){
+      out.push('');
+      prevSide = '';
+    } else {
+      prevSide = side || prevSide;
+    }
   }
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
