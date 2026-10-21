@@ -87,6 +87,10 @@
   th,td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:500;font-size:12px}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .log-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);background:var(--panel2)}
+  .log-tabs button{border-radius:2px;padding:4px 10px;color:var(--muted);font-size:12px;letter-spacing:.03em}
+  .log-tabs button.active{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}
+  .log-tabs .copy-round{margin-left:auto}
   .log{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;max-height:560px;overflow:auto;padding:10px 14px;background:#0a0907;border-radius:0;border-top:1px solid var(--line)}
   .log .r{color:var(--accent);font-weight:600;margin-top:10px}
   .log .e{margin:2px 0;white-space:pre-wrap}
@@ -200,6 +204,7 @@
       </div>
       <div class="card">
         <h2>Battle log <span class="btns"><button id="btnCopy">Copy for Discord</button></span></h2>
+        <div class="log-tabs" id="logRoundTabs"></div>
         <div class="log" id="log"></div>
       </div>
     </div>
@@ -1069,6 +1074,8 @@ class Battle {
 /* ───────────────────────────── UI: BATTLE ───────────────────────────── */
 let battle = null;
 function startBattle(){
+  logSlice = 'all';
+  logRoundCount = 0;
   setSeed(document.getElementById('seed').value.trim());
   battle = new Battle(false);
   const houseLine = f => f.houses.length ? ` Houses: ${f.houses.map(h => `${h.name} ${h.startLs} LS, ${h.startGa} GA${h.startDrom ? `, ${h.startDrom} ${h.dromType && h.dromType !== 'none' ? h.dromType + ' ' : ''}dromond${h.startDrom > 1 ? 's' : ''}` : ''}${h.hadPrimary ? ' (primary)' : ''}`).join('; ')}.` : '';
@@ -1113,9 +1120,13 @@ function render(){
   document.getElementById('btnAutoRound').disabled = b.over;
   document.getElementById('btnAutoBattle').disabled = b.over;
   document.getElementById('hint').textContent = b.over ? 'Battle resolved and saved to the Log tab. Copy for the ticket, or Reset to run another.' : b.phase === 'start' ? (b._initOpen ? 'Initiative tied, please reroll.' : (simMode() ? 'Enter any d20s for damage mod, then Roll damage — both fleets strike at once. The sim adds (Mar+Stew)÷divisor and traits, then maps the total to a percent of the ship dice (1→5%, 20→100%, 30+→150%).' : 'Enter any d20s the players already rolled, then Roll initiative — empty fields are rolled by the sim. The sim adds (Mar+Stew)÷divisor and traits.')) : b.phase === 'damage' ? 'Roll damage — the initiative winner strikes first.' : b.phase === 'flee' ? (simMode() ? 'After the round: either side may flee (once per battle), or keep fighting for another simultaneous exchange.' : 'After the round: either side may flee (once per battle), or roll initiative to keep fighting.') : b.phase === 'pursue' ? `${b.name(b.fleeing)} is running. Pursue (contested roll) or let them go — remaining ships escape. Capture is rolled at the end, only on hulls already defeated.` : '';
+  syncLogSlice(b.log);
+  renderLogTabs(document.getElementById('logRoundTabs'), b.log, logSlice);
   const logEl = document.getElementById('log');
-  logEl.innerHTML = b.log.map(e => e.cls === 'r' ? `<div class="r">${e.text}</div>` : `<div class="e ${e.cls}">${esc(e.text)}${e.detail ? `<details><summary>dice</summary>${esc(e.detail)}</details>` : ''}</div>`).join('');
+  logEl.innerHTML = logHtml(sliceLog(b.log, logSlice));
   logEl.scrollTop = logEl.scrollHeight;
+  const copyBtn = document.getElementById('btnCopy');
+  if (copyBtn) copyBtn.textContent = logSlice === 'all' ? 'Copy for Discord' : 'Copy ' + (splitLogRounds(b.log).find(c => c.key === logSlice) || { title: 'this' }).title;
 }
 function readDie(id, lo, hi){
   const el = document.getElementById(id); if (!el) return null;
@@ -1125,6 +1136,42 @@ function readDie(id, lo, hi){
   return n;
 }
 function clearDie(id){ const el = document.getElementById(id); if (el) el.value = ''; }
+let logSlice = 'all';
+let logRoundCount = 0;
+function logHtml(entries){
+  return (entries || []).map(e => e.cls === 'r' ? `<div class="r">${esc(e.text)}</div>` : `<div class="e ${esc(e.cls)}">${esc(e.text)}${e.detail ? `<details><summary>dice</summary>${esc(e.detail)}</details>` : ''}</div>`).join('');
+}
+function splitLogRounds(entries){
+  const chunks = [];
+  let cur = { key: 'setup', title: 'Setup', entries: [] };
+  for (const e of entries || []){
+    if (e.cls === 'r'){
+      if (cur.entries.length) chunks.push(cur);
+      const n = (String(e.text).match(/(\d+)/) || [])[1] || String(chunks.length);
+      cur = { key: 'r' + n, title: 'Round ' + n, entries: [e] };
+    } else cur.entries.push(e);
+  }
+  if (cur.entries.length) chunks.push(cur);
+  return chunks;
+}
+function sliceLog(entries, key){
+  if (!key || key === 'all') return entries || [];
+  return (splitLogRounds(entries).find(c => c.key === key) || { entries: entries || [] }).entries;
+}
+function renderLogTabs(el, entries, active, archiveId){
+  if (!el) return;
+  const chunks = splitLogRounds(entries);
+  const tabs = [{ key: 'all', title: 'All' }, ...chunks];
+  el.innerHTML = tabs.map(t => `<button type="button" class="${t.key === active ? 'active' : ''}" data-log-slice="${esc(t.key)}"${archiveId ? ` data-archive="${esc(archiveId)}"` : ''}>${esc(t.title)}</button>`).join('')
+    + (archiveId ? `<button type="button" class="copy-round" data-copy-archive="${esc(archiveId)}" data-copy-slice="current">Copy this</button>` : '');
+}
+function syncLogSlice(entries){
+  const chunks = splitLogRounds(entries);
+  const rounds = chunks.filter(c => c.key !== 'setup').length;
+  if (rounds > logRoundCount) logSlice = chunks[chunks.length - 1].key;
+  logRoundCount = rounds;
+  if (logSlice !== 'all' && !chunks.some(c => c.key === logSlice)) logSlice = 'all';
+}
 function formatDiscordLog(entries, label){
   const skip = /^(Surrender, flee, or keep fighting|Both sides keep fighting|Player dice must)/;
   const out = [`**Naval battle — ${label || ''}**`];
@@ -1160,10 +1207,19 @@ function formatDiscordLog(entries, label){
   }
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
+function formatDiscordSlice(entries, label, key){
+  const slice = sliceLog(entries, key);
+  if (!key || key === 'all' || key === 'setup') return formatDiscordLog(slice, label);
+  const setup = splitLogRounds(entries).find(c => c.key === 'setup');
+  const names = (setup ? setup.entries : []).filter(e => e.cls === 'A' || e.cls === 'B').slice(0, 2);
+  return formatDiscordLog([...names, ...slice], label);
+}
 function copyLog(){
   if (!battle) return;
-  const txt = formatDiscordLog(battle.log, rules.label);
-  navigator.clipboard.writeText(txt).then(() => { const btn = document.getElementById('btnCopy'); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy for Discord', 1200); });
+  const txt = formatDiscordSlice(battle.log, rules.label, logSlice);
+  const btn = document.getElementById('btnCopy');
+  const label = btn ? btn.textContent : 'Copy for Discord';
+  navigator.clipboard.writeText(txt).then(() => { if (btn){ btn.textContent = 'Copied'; setTimeout(() => { if (battle) render(); else btn.textContent = label; }, 1200); } });
 }
 
 /* ───────────────────────────── UI: MONTE CARLO ───────────────────────────── */
@@ -1216,8 +1272,8 @@ function persistArchive(){
   try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); return true; }
   catch (e) { alert('Could not save the battle log (this browser is out of space). Delete old entries on the Log tab and try again.'); return false; }
 }
-function archiveText(entry){
-  return formatDiscordLog(entry.log, entry.rules || '');
+function archiveText(entry, slice){
+  return formatDiscordSlice(entry.log, entry.rules || '', slice || 'all');
 }
 function archiveBattle(b){
   if (!b || b.quiet || b.archived) return;
@@ -1249,19 +1305,20 @@ function renderArchive(){
   if (!archive.length){ el.innerHTML = '<p class="muted">No finished battles yet.</p>'; return; }
   el.innerHTML = archive.map(e => {
     const when = e.at ? new Date(e.at).toLocaleString() : '';
-    const logHtml = (e.log || []).map(row => row.cls === 'r' ? `<div class="r">${esc(row.text)}</div>` : `<div class="e ${esc(row.cls)}">${esc(row.text)}${row.detail ? `<details><summary>dice</summary>${esc(row.detail)}</details>` : ''}</div>`).join('');
-    return `<details class="arch-item">
+    const slice = 'all';
+    return `<details class="arch-item" data-slice="${slice}">
       <summary>
         <span class="when">${esc(when)}</span>
         <span class="vs">${esc(e.a)} vs ${esc(e.b)}</span>
         <span class="out">${esc(e.outcome)}</span>
         <span class="meta">${e.rounds || 0} round${e.rounds === 1 ? '' : 's'} · ${esc(e.rules || '')}${e.seed ? ' · seed ' + esc(e.seed) : ''}</span>
         <span class="arch-actions">
-          <button type="button" data-copy-archive="${esc(e.id)}">Copy</button>
+          <button type="button" data-copy-archive="${esc(e.id)}">Copy all</button>
           <button type="button" class="danger" data-del-archive="${esc(e.id)}">Delete</button>
         </span>
       </summary>
-      <div class="log">${logHtml}</div>
+      <div class="log-tabs">${[{ key: 'all', title: 'All' }, ...splitLogRounds(e.log)].map(t => `<button type="button" class="${t.key === slice ? 'active' : ''}" data-log-slice="${esc(t.key)}" data-archive="${esc(e.id)}">${esc(t.title)}</button>`).join('')}<button type="button" class="copy-round" data-copy-archive="${esc(e.id)}" data-copy-slice="current">Copy this</button></div>
+      <div class="log">${logHtml(sliceLog(e.log, slice))}</div>
     </details>`;
   }).join('');
 }
@@ -1306,6 +1363,12 @@ document.getElementById('btnAutoRound').addEventListener('click', () => { if (!b
 document.getElementById('btnAutoBattle').addEventListener('click', () => { if (!battle) startBattle(); battle.autoBattle(); render(); });
 document.getElementById('btnReset').addEventListener('click', () => { startBattle(); });
 document.getElementById('btnCopy').addEventListener('click', copyLog);
+document.getElementById('logRoundTabs').addEventListener('click', e => {
+  const btn = e.target.closest('[data-log-slice]');
+  if (!btn || !battle) return;
+  logSlice = btn.dataset.logSlice;
+  render();
+});
 document.getElementById('btnMC').addEventListener('click', runMC);
 document.getElementById('presetCur').addEventListener('click', () => applyPreset('current'));
 document.getElementById('presetV1').addEventListener('click', () => applyPreset('v1'));
@@ -1314,13 +1377,28 @@ document.querySelectorAll('.seg').forEach(b => b.addEventListener('click', () =>
 document.getElementById('tab-rules').addEventListener('input', formToRules);
 document.getElementById('seed').addEventListener('input', save);
 document.getElementById('archiveList').addEventListener('click', e => {
+  const sliceBtn = e.target.closest('[data-log-slice][data-archive]');
   const copyBtn = e.target.closest('[data-copy-archive]');
   const delBtn = e.target.closest('[data-del-archive]');
+  if (sliceBtn){
+    e.preventDefault(); e.stopPropagation();
+    const item = sliceBtn.closest('.arch-item');
+    const entry = archive.find(x => x.id === sliceBtn.dataset.archive);
+    if (!item || !entry) return;
+    item.dataset.slice = sliceBtn.dataset.logSlice;
+    item.querySelectorAll('[data-log-slice]').forEach(b => b.classList.toggle('active', b.dataset.logSlice === item.dataset.slice));
+    const logBox = item.querySelector('.log');
+    if (logBox) logBox.innerHTML = logHtml(sliceLog(entry.log, item.dataset.slice));
+    return;
+  }
   if (copyBtn){
     e.preventDefault(); e.stopPropagation();
     const entry = archive.find(x => x.id === copyBtn.dataset.copyArchive);
     if (!entry) return;
-    navigator.clipboard.writeText(archiveText(entry)).then(() => { copyBtn.textContent = 'Copied'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1200); });
+    const item = copyBtn.closest('.arch-item');
+    const slice = copyBtn.dataset.copySlice === 'current' ? (item && item.dataset.slice) || 'all' : 'all';
+    const old = copyBtn.textContent;
+    navigator.clipboard.writeText(archiveText(entry, slice)).then(() => { copyBtn.textContent = 'Copied'; setTimeout(() => { copyBtn.textContent = old; }, 1200); });
     return;
   }
   if (delBtn){
