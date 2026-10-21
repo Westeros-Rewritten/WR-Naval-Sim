@@ -1230,15 +1230,9 @@ function formatDiscordLog(entries, label){
       prevSide = '';
       continue;
     }
-    if (t.startsWith('Houses:')){
-      out.push('Houses:');
-      t.slice(7).split(';').map(s => s.trim()).filter(Boolean).forEach(s => out.push(s));
-      prevSide = side || prevSide;
-      continue;
-    }
     if (side && prevSide && side !== prevSide) blank();
     if ((e.cls === 'hi' || e.cls === 'sys') && prevSide) blank();
-    out.push(t);
+    expandDiscordLine(t).forEach(line => out.push(line));
     if (e.cls === 'hi' || e.cls === 'sys'){
       out.push('');
       prevSide = '';
@@ -1248,11 +1242,37 @@ function formatDiscordLog(entries, label){
   }
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
+function expandDiscordLine(t){
+  if (t.startsWith('Houses:')){
+    return ['Houses:', ...t.slice(7).split(';').map(s => s.trim()).filter(Boolean)];
+  }
+  if (t.startsWith('House split:')){
+    return ['House split:', ...t.slice(12).replace(/\.$/, '').split(';').map(s => s.trim()).filter(Boolean)];
+  }
+  const att = t.match(/^(.+ attacks):\s*(.+)$/);
+  if (att){
+    let body = att[2].replace(/\.$/, '');
+    let target = '';
+    const dash = body.match(/^(.*?)\s+[—–]\s+(.+)$/);
+    if (dash){ body = dash[1]; target = dash[2]; }
+    let mod = '';
+    const modM = body.match(/^(.*?)\s+(×\s+\d+%\s*→\s*.+)$/);
+    if (modM){ body = modM[1]; mod = modM[2]; }
+    return [att[1] + ':', ...body.split(/\s+\+\s+/).map(s => s.trim()).filter(Boolean), mod, target].filter(Boolean);
+  }
+  if (/(destroyed|no ships destroyed)/i.test(t) && t.includes(';')){
+    return t.replace(/\.$/, '').split(';').map(s => s.trim()).filter(Boolean);
+  }
+  return [t];
+}
 function formatDiscordSlice(entries, label, key){
   const slice = sliceLog(entries, key);
   if (!key || key === 'all' || key === 'setup') return formatDiscordLog(slice, label);
   const setup = splitLogRounds(entries).find(c => c.key === 'setup');
-  const names = (setup ? setup.entries : []).filter(e => e.cls === 'A' || e.cls === 'B').slice(0, 2);
+  const names = [];
+  for (const side of ['A', 'B']){
+    (setup ? setup.entries : []).filter(e => e.cls === side).forEach(e => names.push(e));
+  }
   return formatDiscordLog([...names, ...slice], label);
 }
 function copyLog(){
